@@ -221,6 +221,7 @@ const handleApiDl = async (req, res) => {
   if (!originalUrl) {
     return res.status(400).json({
       status: "error",
+      failure_stage: "INPUT_VALIDATION",
       message: "Parameter 'url' wajib diisi (URL media sosial).",
     });
   }
@@ -229,13 +230,30 @@ const handleApiDl = async (req, res) => {
     console.log(`📥 [API DL] Menganalisis URL: ${originalUrl}`);
 
     // --- TAHAP 1: DAPATKAN LINK DARI SNAPSAVE ---
-    const snapsaveResult = await snapsave(originalUrl);
+    let snapsaveResult;
+    try {
+        // Panggil SnapSave. Ini adalah titik di mana pengecualian pihak ketiga sering terjadi.
+        snapsaveResult = await snapsave(originalUrl);
+    } catch (snapsaveError) {
+        // Tangkap kegagalan spesifik dari SnapSave (e.g., jaringan, timeout, atau format data tidak terduga)
+        console.error("❌ [API DL] SnapSave Error:", snapsaveError.message);
+        return res.status(500).json({
+            status: "error",
+            failure_stage: "SNAP_SAVE_ANALYSIS_FAILED",
+            message: `Gagal menganalisis URL media: ${snapsaveError.message}. SnapSave mungkin sedang offline atau URL sangat kompleks.`,
+            "Original URL": originalUrl,
+        });
+    }
+
+
     const data = snapsaveResult?.data;
 
     if (!data?.media?.length) {
-      return res.status(404).json({ 
-          status: "error", 
-          message: "Media tidak ditemukan atau URL tidak valid oleh SnapSave." 
+      return res.status(404).json({
+          status: "error",
+          failure_stage: "SNAP_SAVE_NO_MEDIA_FOUND",
+          message: "Media tidak ditemukan atau URL tidak valid oleh SnapSave (Mungkin private atau tidak ada video/foto).",
+          "Original URL": originalUrl,
       });
     }
 
@@ -243,9 +261,11 @@ const handleApiDl = async (req, res) => {
     const downloadLink = data.media[0]?.url;
 
     if (!downloadLink || !downloadLink.startsWith("http")) {
-      return res.status(400).json({ 
-          status: "error", 
-          message: "SnapSave berhasil dianalisis, tetapi tidak menghasilkan tautan download yang valid." 
+      return res.status(400).json({
+          status: "error",
+          failure_stage: "SNAP_SAVE_INVALID_DOWNLOAD_LINK",
+          message: "SnapSave berhasil dianalisis, tetapi tidak menghasilkan tautan download yang valid.",
+          "Original URL": originalUrl,
       });
     }
 
@@ -267,7 +287,8 @@ const handleApiDl = async (req, res) => {
     clearTimeout(timeout);
 
     if (!shtlPwResponse.ok) {
-        throw new Error(`shtl.pw merespons status ${shtlPwResponse.status}`);
+        // Jika shtl.pw mengembalikan status HTTP error (4xx, 5xx)
+        throw new Error(`shtl.pw merespons status HTTP ${shtlPwResponse.status}`);
     }
 
     const shtlPwData = await shtlPwResponse.json();
@@ -277,7 +298,9 @@ const handleApiDl = async (req, res) => {
       const shtlErrorMessage = shtlPwData.message || "shtl.pw gagal menghasilkan shortlink.";
       return res.status(500).json({
         status: "error",
+        failure_stage: "SHORTLINK_API_STATUS_FAILED",
         message: `Gagal Shortlink: ${shtlErrorMessage}`,
+        "Original URL": originalUrl,
       });
     }
 
@@ -285,14 +308,21 @@ const handleApiDl = async (req, res) => {
     res.json({
       status: "success",
       url: shtlPwData.url, // Shortlink URL yang didapatkan
+      failure_stage: "SUCCESS",
       "Original URL": originalUrl,
     });
 
   } catch (err) {
-    console.error("❌ [API DL] Error dalam proses Shortlink:", err.message);
+    // Tangkap error umum (Timeout pada fetch shtl.pw atau kesalahan kritis tak terduga)
+    const failureStage = err.message.includes("shtl.pw") || err.name === "AbortError" 
+        ? "SHORTLINK_CONNECTION_FAILED" 
+        : "UNEXPECTED_SERVER_ERROR";
+    
+    console.error(`❌ [API DL] Error dalam proses Shortlink (Stage: ${failureStage}):`, err.message);
     res.status(500).json({
       status: "error",
-      message: `Terjadi kegagalan server: ${err.message}`,
+      failure_stage: failureStage,
+      message: `Terjadi kegagalan server: ${err.message}. Periksa status API pihak ketiga atau coba lagi.`,
       "Original URL": originalUrl,
     });
   }
@@ -318,3 +348,4 @@ app.listen(PORT, () => {
     }, 3000);
   }
 });
+
