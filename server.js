@@ -232,10 +232,10 @@ const handleApiDl = async (req, res) => {
     // --- TAHAP 1: DAPATKAN LINK DARI SNAPSAVE ---
     let snapsaveResult;
     try {
-        // Panggil SnapSave. Ini adalah titik di mana pengecualian pihak ketiga sering terjadi.
+        // Panggil SnapSave.
         snapsaveResult = await snapsave(originalUrl);
     } catch (snapsaveError) {
-        // Tangkap kegagalan spesifik dari SnapSave (e.g., jaringan, timeout, atau format data tidak terduga)
+        // Tangkap kegagalan spesifik dari SnapSave
         console.error("❌ [API DL] SnapSave Error:", snapsaveError.message);
         return res.status(500).json({
             status: "error",
@@ -248,7 +248,8 @@ const handleApiDl = async (req, res) => {
 
     const data = snapsaveResult?.data;
 
-    if (!data?.media?.length) {
+    // Pengecekan baru dan lebih aman untuk media
+    if (!data || !Array.isArray(data.media) || data.media.length === 0) {
       return res.status(404).json({
           status: "error",
           failure_stage: "SNAP_SAVE_NO_MEDIA_FOUND",
@@ -257,7 +258,7 @@ const handleApiDl = async (req, res) => {
       });
     }
 
-    // Ambil URL media dengan kualitas terbaik (diasumsikan yang pertama)
+    // Menggunakan optional chaining yang aman untuk menghindari TypeError: Cannot read properties of undefined
     const downloadLink = data.media[0]?.url;
 
     if (!downloadLink || !downloadLink.startsWith("http")) {
@@ -348,4 +349,3 @@ app.listen(PORT, () => {
     }, 3000);
   }
 });
-
