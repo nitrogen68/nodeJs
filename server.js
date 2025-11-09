@@ -131,72 +131,8 @@ app.post("/api/command", (req, res) => {
 });
 
 
-
-
 // ======================================================
-// 🆕 ENDPOINT BARU: /apiDl (HANYA SNAPSAVE)
-// ======================================================
-app.post("/apiDl", async (req, res) => {
-  try {
-    // URL bisa dikirim melalui body (POST) atau query (GET), 
-    // tapi POST lebih baik untuk URL panjang.
-    const url = req.body.url || req.query.url; 
-    
-    if (!url) {
-        return res.status(400).json({ 
-            success: false, 
-            error: "Parameter 'url' wajib diisi (URL media sosial)." 
-        });
-    }
-
-    console.log(`📥 [API DL] Permintaan SnapSave diterima untuk URL: ${url}`);
-    
-    // Panggil library snapsave
-    const result = await snapsave(url);
-    const data = result?.data;
-
-    if (!data?.media?.length) {
-      return res.status(404).json({ success: false, error: "Tidak ada media ditemukan oleh SnapSave." });
-    }
-
-    const validMedia = data.media.filter(
-      (m) =>
-        m.url &&
-        m.url.startsWith("http") &&
-        !m.url.includes("undefined") &&
-        !m.url.includes("null")
-    );
-
-    if (validMedia.length === 0) {
-      return res.status(400).json({ success: false, error: "Media yang dikembalikan SnapSave tidak valid atau tidak bisa diputar." });
-    }
-
-    // Mengembalikan data mentah yang mudah diproses oleh klien pihak ketiga
-    res.json({
-      success: true,
-      data: {
-        description: data.description || "",
-        preview: data.preview || "",
-        media: validMedia.map((m) => ({
-          resolution: m.resolution || "Unknown",
-          url: m.url, // Link download langsung
-          type: m.type || "unknown",
-        })),
-      },
-    });
-
-  } catch (err) {
-    console.error("❌ [API DL] Error SnapSave:", err.message);
-    res.status(500).json({ 
-        success: false, 
-        error: `Gagal memproses URL media: ${err.message}` 
-    });
-  }
-});
-
-
-// ======================================================
-// 📥 API DOWNLOAD MENGGUNAKAN SNAPSAVE
+// 📥 API DOWNLOAD MENGGUNAKAN SNAPSAVE (DIKEMBALIKAN)
 // ======================================================
 app.post("/api/download", async (req, res) => {
   try {
@@ -223,6 +159,7 @@ app.post("/api/download", async (req, res) => {
       return res.status(400).json({ success: false, error: "Media tidak valid atau URL tidak bisa diputar." });
     }
 
+    // Mengembalikan data mentah SnapSave
     res.json({
       success: true,
       data: {
@@ -240,8 +177,9 @@ app.post("/api/download", async (req, res) => {
   }
 });
 
+
 // ======================================================
-// 🌐 PROXY UNTUK GET.PHP
+// 🌐 PROXY UNTUK GET.PHP (DIKEMBALIKAN)
 // ======================================================
 app.get("/proxy/get.php", async (req, res) => {
   const { send, source } = req.query;
@@ -253,18 +191,116 @@ app.get("/proxy/get.php", async (req, res) => {
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15 detik timeout
     const response = await fetch(targetUrl, { signal: controller.signal });
     clearTimeout(timeout);
+    
+    // Pastikan response berhasil sebelum membaca JSON
+    if (!response.ok) {
+        throw new Error(`shtl.pw merespons status ${response.status}`);
+    }
+
     const data = await response.json();
     res.json(data);
   } catch (error) {
     res.status(500).json({
       status: "error",
-      message: `Failed to connect to get.php: ${error.message}`,
+      message: `Failed to connect to get.php or receive valid response: ${error.message}`,
     });
   }
 });
+
+
+// ======================================================
+// 🆕 ENDPOINT UTAMA: /apiDl (INTEGRASI PENUH SHORTLINK)
+// ======================================================
+
+const handleApiDl = async (req, res) => {
+  const originalUrl = req.body.url || req.query.url;
+
+  if (!originalUrl) {
+    return res.status(400).json({
+      status: "error",
+      message: "Parameter 'url' wajib diisi (URL media sosial).",
+    });
+  }
+
+  try {
+    console.log(`📥 [API DL] Menganalisis URL: ${originalUrl}`);
+
+    // --- TAHAP 1: DAPATKAN LINK DARI SNAPSAVE ---
+    const snapsaveResult = await snapsave(originalUrl);
+    const data = snapsaveResult?.data;
+
+    if (!data?.media?.length) {
+      return res.status(404).json({ 
+          status: "error", 
+          message: "Media tidak ditemukan atau URL tidak valid oleh SnapSave." 
+      });
+    }
+
+    // Ambil URL media dengan kualitas terbaik (diasumsikan yang pertama)
+    const downloadLink = data.media[0]?.url;
+
+    if (!downloadLink || !downloadLink.startsWith("http")) {
+      return res.status(400).json({ 
+          status: "error", 
+          message: "SnapSave berhasil dianalisis, tetapi tidak menghasilkan tautan download yang valid." 
+      });
+    }
+
+    console.log("🔗 SnapSave Link Terbaik Ditemukan, Meneruskan ke shtl.pw...");
+
+    // --- TAHAP 2: PROSES KE SHORLINK/TELEGRAM MELALUI SHTL.PW ---
+
+    // Gunakan downloadLink sebagai parameter 'send'
+    const shtlPwEndpoint = `https://shtl.pw/getmylink/get.php?send=${encodeURIComponent(downloadLink)}&source=snapsave`;
+
+    // Beri timeout yang lebih lama karena ada proses upload Telegram di shtl.pw
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000); // 60 detik timeout
+
+    const shtlPwResponse = await fetch(shtlPwEndpoint, {
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!shtlPwResponse.ok) {
+        throw new Error(`shtl.pw merespons status ${shtlPwResponse.status}`);
+    }
+
+    const shtlPwData = await shtlPwResponse.json();
+
+    // Cek respons dari shtl.pw untuk shortlink
+    if (shtlPwData.status !== "success" || !shtlPwData.url) {
+      const shtlErrorMessage = shtlPwData.message || "shtl.pw gagal menghasilkan shortlink.";
+      return res.status(500).json({
+        status: "error",
+        message: `Gagal Shortlink: ${shtlErrorMessage}`,
+      });
+    }
+
+    // --- TAHAP 3: RESPON FINAL SESUAI PERMINTAAN ---
+    res.json({
+      status: "success",
+      url: shtlPwData.url, // Shortlink URL yang didapatkan
+      "Original URL": originalUrl,
+    });
+
+  } catch (err) {
+    console.error("❌ [API DL] Error dalam proses Shortlink:", err.message);
+    res.status(500).json({
+      status: "error",
+      message: `Terjadi kegagalan server: ${err.message}`,
+      "Original URL": originalUrl,
+    });
+  }
+};
+
+// Daftarkan handler untuk GET dan POST
+app.post("/apiDl", handleApiDl);
+app.get("/apiDl", handleApiDl);
 
 // ======================================================
 // 🚀 Jalankan server
