@@ -420,10 +420,61 @@
 .hidden {
   display: none !important;
 }
+
+
+    
+/* --- HEADER STYLES BARU --- */
+header.app-header {
+  width: 100%;
+  max-width: 450px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 10px; /* Sedikit padding agar ikon tidak menempel tepi */
+}
+
+.icon-group {
+  display: flex;
+  gap: 15px;
+}
+
+.header-icon {
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  color: #00f2ff; /* Warna ikon yang sesuai dengan tema */
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.header-icon:hover {
+  color: #ff4081; /* Efek hover */
+  transform: scale(1.1);
+}
+
+.header-icon.login {
+    /* Atur jika perlu warna khusus untuk login */
+    color: #4CAF50;
+}
 </style>
 </head>
 <body>
 
+
+  <!-- 1. HEADER BARU DENGAN ICON -->
+  <header class="app-header">
+      <div class="icon-group">
+          <!-- Ikon Kunci/Login (Simulasi) -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="header-icon login" onclick="showFloatingMessage('Simulasi: Halaman Login')"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          
+          <!-- Ikon Lonceng/Notifikasi (Simulasi) -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="header-icon" onclick="showFloatingMessage('Simulasi: Notifikasi Anda kosong')"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.375 21a2 2 0 0 0 3.25 0"/></svg>
+      </div>
+      <!-- Judul/Logo dipindahkan ke dalam container untuk layout yang lebih baik -->
+      <div></div>
+  </header>
+  
+  
   
 <div class="support-container">
   <h2>Support:</h2>
