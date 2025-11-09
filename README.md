@@ -1,18 +1,18 @@
-## ⚙️ **How ​​Does It Work?**
+## ⚙️ **How Does It Work?**
 
-After installing the **`snapsave-media-downloader`** dependency, the system process occurs in **two main stages**:
+After installing the **`snapsave-media-downloader`** dependency, the system operates in **two main stages**.
+
+
 
 ### 🧩 **First Stage**
 
-I make a request to **`snapsave-media-downloader`** in the **`server.js`** file.
-After the **downloader URL** is successfully obtained, the process continues to the second stage.
+A request is made to **`snapsave-media-downloader`** inside the **`server.js`** file.  
+Once the **downloader URL** is successfully retrieved, the process continues to the **second stage**.
+
 
 ### 🔗 **Second Stage**
 
-This stage makes a request to a personal website with the following endpoint:
-
-
-## 🔗 **API Endpoint**
+At this stage, a request is sent to a personal API endpoint:
 
 https://shtl.pw/getmylink/get.php?send=${send}&source=${source}
 
@@ -51,28 +51,43 @@ $source	The original source URL before the extraction process begins.
 
 
 
-In this request, several processes run in the background:
 
-1. **The media URL is uploaded to the Telegram server** using a special bot (**a regular bot**)
+⚙️ Background Process
 
- 2. After the **(OK 200)** status is received, the website also runs the **Shortlink URL** process simultaneously.
+When the above request is made, several operations occur automatically in the background:
 
-As a result, the URL you receive will look like:
+1. The media URL is uploaded to the Telegram server using a special bot (regular bot).
+
+
+2. Once the server returns a status (OK 200), the system simultaneously runs a shortlink generator.
+
+
+
+As a result, you’ll receive a shortened URL that looks like this:
 
 https://shtl.pw/gml_xxxxxx
 
-**Real example:**
+Example:
 
 https://shtl.pw/gml_yznT94sQ
 
-### 📦 **What Do You Get?**
 
-The shortlink page provides:
-- **A permanent file** that can be downloaded at any time.
-- **A short link** that is easy to share.
-- As long as the website is active, the file will remain available and safe to access.
 
-### 📍 **Need to Know**
 
-> On the regular Telegram Bot, the maximum file size that can be uploaded is 20 MB.
-> So, you can still get the downloaded video, but the **Shortlink fetching** process will fail if the file exceeds this limit.
+📦 What Do You Get?
+
+The generated shortlink page provides:
+
+✅ Permanent file access — downloadable anytime.
+
+🔗 Shareable short URL — easy to copy and distribute.
+
+💾 Persistent availability — files remain accessible as long as the website stays active.
+
+
+
+
+📍 Important Note
+
+> ⚠️ On the regular Telegram Bot, the maximum upload file size is 20 MB.
+You can still download the video, but the shortlink generation process will fail if the file exceeds this limit.
