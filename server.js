@@ -248,7 +248,7 @@ const handleApiDl = async (req, res) => {
 
     const data = snapsaveResult?.data;
 
-    // Pengecekan baru dan lebih aman untuk media
+    // Pengecekan dasar: pastikan data dan media array ada
     if (!data || !Array.isArray(data.media) || data.media.length === 0) {
       return res.status(404).json({
           status: "error",
@@ -258,14 +258,20 @@ const handleApiDl = async (req, res) => {
       });
     }
 
-    // Menggunakan optional chaining yang aman untuk menghindari TypeError: Cannot read properties of undefined
-    const downloadLink = data.media[0]?.url;
+    // CARI MEDIA PERTAMA DENGAN URL YANG VALID
+    // Baris ini adalah perbaikan agar tidak terjadi TypeError: Cannot read properties of undefined (reading 'url')
+    const bestMedia = data.media.find(
+      (m) => m && typeof m.url === 'string' && m.url.startsWith("http")
+    );
 
-    if (!downloadLink || !downloadLink.startsWith("http")) {
+    const downloadLink = bestMedia?.url; 
+    
+    // Pastikan download link ditemukan
+    if (!downloadLink) {
       return res.status(400).json({
           status: "error",
           failure_stage: "SNAP_SAVE_INVALID_DOWNLOAD_LINK",
-          message: "SnapSave berhasil dianalisis, tetapi tidak menghasilkan tautan download yang valid.",
+          message: "SnapSave berhasil dianalisis, tetapi tidak menghasilkan tautan download yang valid atau dapat digunakan.",
           "Original URL": originalUrl,
       });
     }
