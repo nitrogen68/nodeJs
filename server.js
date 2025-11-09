@@ -130,6 +130,71 @@ app.post("/api/command", (req, res) => {
   });
 });
 
+
+
+
+// ======================================================
+// 🆕 ENDPOINT BARU: /apiDl (HANYA SNAPSAVE)
+// ======================================================
+app.post("/apiDl", async (req, res) => {
+  try {
+    // URL bisa dikirim melalui body (POST) atau query (GET), 
+    // tapi POST lebih baik untuk URL panjang.
+    const url = req.body.url || req.query.url; 
+    
+    if (!url) {
+        return res.status(400).json({ 
+            success: false, 
+            error: "Parameter 'url' wajib diisi (URL media sosial)." 
+        });
+    }
+
+    console.log(`📥 [API DL] Permintaan SnapSave diterima untuk URL: ${url}`);
+    
+    // Panggil library snapsave
+    const result = await snapsave(url);
+    const data = result?.data;
+
+    if (!data?.media?.length) {
+      return res.status(404).json({ success: false, error: "Tidak ada media ditemukan oleh SnapSave." });
+    }
+
+    const validMedia = data.media.filter(
+      (m) =>
+        m.url &&
+        m.url.startsWith("http") &&
+        !m.url.includes("undefined") &&
+        !m.url.includes("null")
+    );
+
+    if (validMedia.length === 0) {
+      return res.status(400).json({ success: false, error: "Media yang dikembalikan SnapSave tidak valid atau tidak bisa diputar." });
+    }
+
+    // Mengembalikan data mentah yang mudah diproses oleh klien pihak ketiga
+    res.json({
+      success: true,
+      data: {
+        description: data.description || "",
+        preview: data.preview || "",
+        media: validMedia.map((m) => ({
+          resolution: m.resolution || "Unknown",
+          url: m.url, // Link download langsung
+          type: m.type || "unknown",
+        })),
+      },
+    });
+
+  } catch (err) {
+    console.error("❌ [API DL] Error SnapSave:", err.message);
+    res.status(500).json({ 
+        success: false, 
+        error: `Gagal memproses URL media: ${err.message}` 
+    });
+  }
+});
+
+
 // ======================================================
 // 📥 API DOWNLOAD MENGGUNAKAN SNAPSAVE
 // ======================================================
