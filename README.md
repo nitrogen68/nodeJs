@@ -11,11 +11,49 @@ After the **downloader URL** is successfully obtained, the process continues to 
 
 This stage makes a request to a personal website with the following endpoint:
 
+
+## 🔗 **API Endpoint**
+
 https://shtl.pw/getmylink/get.php?send=${send}&source=${source}
+
+
+
+### 📥 **Example Success Response**
+
+
+{
+  "status": "success",
+  "url": "$short_link"
+}
+
+
+
+
+⚠️ Example Error Response
+
+{
+  "status": "error",
+  "error": {
+    "message": "Failed to send video to Telegram: Unknown error"
+  }
+}
+
+
+
+
+🧠 Parameter Explanation
+
+Parameter	Description
+
+$send	The media URL extracted from SnapDL.
+$source	The original source URL before the extraction process begins.
+
+
+
 
 In this request, several processes run in the background:
 
-1. **The media URL is uploaded to the Telegram server** using a special bot (**a regular bot**).
+1. **The media URL is uploaded to the Telegram server** using a special bot (**a regular bot**)
 
  2. After the **(OK 200)** status is received, the website also runs the **Shortlink URL** process simultaneously.
 
