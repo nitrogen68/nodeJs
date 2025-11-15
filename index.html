@@ -31,6 +31,7 @@
             justify-content: flex-start; /* Mengubah menjadi flex-start */
             align-items: center;
             padding: 20px;
+            padding-top: 70px; 
         }
 
         /* Header Styles */
@@ -386,54 +387,58 @@
             display: none !important;
         }
 
-        /* Support Container Styles */
-        .support-container {
-            margin-top: 20px;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 8px;
-            text-align: center;
-            width: 85%;
-            max-width: 320px; /* Meningkatkan lebar support container */
-            margin-left: auto;
-            margin-right: auto;
-            backdrop-filter: blur(6px);
-        }
+        
+/* Support Container Styles */
+.support-container {
+    margin-top: 25px; /* jarak ideal dari header */
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    text-align: center;
+    width: 85%;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+    backdrop-filter: blur(8px);
 
-        .support-container h2 {
-            font-size: 16px; /* Ukuran font lebih besar */
-            font-weight: 600;
-            color: #a7f3d0;
-            margin-bottom: 6px;
-            letter-spacing: 0.2px;
-        }
+    /* memastikan posisi rapi antar section */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
-        .social-icons {
-            display: flex;
-            justify-content: center;
-            gap: 15px; /* Spasi antar ikon diperbesar */
-            margin-top: 10px; /* Ruang tambahan di atas ikon */
-        }
+/* Judul support */
+.support-container h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #a7f3d0;
+    margin-bottom: 8px;
+    letter-spacing: 0.2px;
+}
 
-        .social-icons a {
-            display: inline-block;
-            text-decoration: none;
-        }
+/* Wrapper ikon */
+.social-icons {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 6px;
+}
 
-        .social-icons a img {
-            width: 32px; /* Ukuran ikon diperbesar */
-            height: 32px;
-            opacity: 0.85;
-            transition: 0.2s ease;
-            filter: invert(1) drop-shadow(0 0 4px rgba(0, 255, 180, 0.35));
-        }
+/* Ikon */
+.social-icons a img {
+    width: 32px;
+    height: 32px;
+    opacity: 0.85;
+    transition: 0.25s ease;
+    filter: invert(1) drop-shadow(0 0 4px rgba(0, 255, 180, 0.35));
+}
 
-        .social-icons a img:hover {
-            transform: scale(1.18);
-            opacity: 1;
-            filter: invert(1) drop-shadow(0 0 10px rgba(0, 255, 180, 0.6));
-        }
+.social-icons a img:hover {
+    transform: scale(1.18);
+    opacity: 1;
+    filter: invert(1) drop-shadow(0 0 10px rgba(0, 255, 180, 0.65));
+}
 
         /* Development Support Container Styles */
         .development-support-container {
