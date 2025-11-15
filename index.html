@@ -1,1393 +1,1286 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📥 Media Downloader</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="preconnect" href="https://www.tiktok.com">
-  <link rel="preconnect" href="https://www.facebook.com">
-  <link rel="preconnect" href="https://www.instagram.com">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📥 Media Downloader</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Simple Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simple-icons/7.1.0/css/simpleicons.css">
 
-    body {
-  font-family: 'Poppins', sans-serif;
-  background: linear-gradient(135deg, #1e1e2f, #2a4066);
-  color: #fff;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column; /* ✅ tambahan penting */
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-}
+    <style>
+        /* Reset CSS */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    .container {
-      max-width: 450px;
-      width: 100%;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 15px;
-      padding: 30px;
-      text-align: center;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
+        /* Body Styles */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1e1e2f, #2a4066);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start; /* Mengubah menjadi flex-start */
+            align-items: center;
+            padding: 20px;
+        }
 
-    h1 {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: #00f2ff;
-      margin-bottom: 20px;
-      text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
-    }
+        /* Header Styles */
+        header.app-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background: rgba(15, 15, 20, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            box-shadow: 0 2px 10px rgba(0, 255, 255, 0.1);
+            z-index: 1000; /* Meningkatkan z-index */
+        }
 
-    .url-input-wrapper {
-      position: relative;
-      width: 100%;
-      margin-bottom: 15px;
-    }
+        .icon-group-left,
+        .icon-group-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
 
-    .url-input-wrapper input {
-      width: 100%;
-      padding: 14px 45px 14px 14px;
-      border: none;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
-      font-size: 1rem;
-      outline: none;
-      transition: background 0.3s ease, box-shadow 0.3s ease;
-    }
+        .header-icon {
+            cursor: pointer;
+            width: 26px;
+            height: 26px;
+            color: #00f2ff;
+            transition: color 0.25s ease, transform 0.25s ease;
+        }
 
-    .url-input-wrapper input:focus {
-      background: rgba(255, 255, 255, 0.15);
-      box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
-    }
+        .header-icon:hover {
+            color: #ff4081;
+            transform: scale(1.15);
+        }
 
-    .paste-icon {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: linear-gradient(90deg, #00b4ff, #00f2ff);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 6px 9px;
-      cursor: pointer;
-      font-size: 16px;
-      transition: background 0.3s ease;
-    }
+        .header-icon.login {
+            color: #4CAF50;
+        }
 
-    .paste-icon:hover {
-      background: linear-gradient(90deg, #0096d6, #00d9ff);
-    }
+        /* Container Styles */
+        .container {
+            max-width: 500px; /* Meningkatkan lebar container */
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 80px; /* Memberi ruang di bawah header */
+        }
 
-    .btn {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
+        h1 {
+            font-size: 2.2rem; /* Ukuran font lebih besar */
+            font-weight: 700;
+            color: #00f2ff;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
 
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    }
+        /* Input Styles */
+        .url-input-wrapper {
+            position: relative;
+            width: 100%;
+            margin-bottom: 15px;
+        }
 
-    .btn-download {
-      background: linear-gradient(90deg, #00b4ff, #00f2ff);
-    }
+        .url-input-wrapper input {
+            width: 100%;
+            padding: 14px 45px 14px 14px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
 
-    .btn-download:hover {
-      background: linear-gradient(90deg, #0096d6, #00d9ff);
-    }
+        .url-input-wrapper input:focus {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+        }
 
-    .copy-btn {
-      background: linear-gradient(90deg, #4CAF50, #66BB6A);
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      margin: 10px 5px;
-      font-weight: 600;
-      transition: background 0.3s ease, transform 0.3s ease;
-    }
+        .paste-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(90deg, #00b4ff, #00f2ff);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 9px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
 
-    .copy-btn:hover {
-      background: linear-gradient(90deg, #45a049, #5cb85c);
-      transform: translateY(-2px);
-    }
+        .paste-icon:hover {
+            background: linear-gradient(90deg, #0096d6, #00d9ff);
+        }
 
-    #progressContainer {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      height: 8px;
-      margin: 20px 0;
-      overflow: hidden;
-      display: none;
-    }
+        /* Button Styles */
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
 
-    #progressBar {
-      width: 0;
-      height: 100%;
-      background: linear-gradient(90deg, #00f2ff, #ff4081);
-      transition: width 0.4s ease;
-    }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
 
-    #progressText {
-      color: #ccc;
-      font-size: 0.9rem;
-      margin-top: 5px;
-    }
+        .btn-download {
+            background: linear-gradient(90deg, #00b4ff, #00f2ff);
+        }
 
-    #result {
-      margin-top: 20px;
-    }
+        .btn-download:hover {
+            background: linear-gradient(90deg, #0096d6, #00d9ff);
+        }
 
-    .download-btn {
-      display: inline-block;
-      background: linear-gradient(90deg, #ff4081, #ff6f61);
-      color: #fff;
-      padding: 10px 20px;
-      border-radius: 12px;
-      text-decoration: none;
-      font-weight: 600;
-      margin: 10px 5px;
-      transition: background 0.3s ease, transform 0.3s ease;
-    }
+        .copy-btn {
+            background: linear-gradient(90deg, #4CAF50, #66BB6A);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-weight: 600;
+            transition: background 0.3s ease, transform 0.3s ease;
+        }
 
-    .download-btn:hover {
-      background: linear-gradient(90deg, #e03575, #f05a4f);
-      transform: translateY(-2px);
-    }
+        .copy-btn:hover {
+            background: linear-gradient(90deg, #45a049, #5cb85c);
+            transform: translateY(-2px);
+        }
 
-    p.error {
-      color: #ff6f61;
-      font-weight: 500;
-      background: rgba(255, 107, 97, 0.2);
-      padding: 10px;
-      border-radius: 8px;
-    }
+        /* Progress Bar Styles */
+        #progressContainer {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            height: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+            display: none;
+        }
 
-    .video-wrapper {
-      position: relative;
-      margin-top: 20px;
-      border-radius: 12px;
-      overflow: hidden;
-      background: #000;
-    }
+        #progressBar {
+            width: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #00f2ff, #ff4081);
+            transition: width 0.4s ease;
+        }
 
-    video,
-    img.thumbnail {
-      width: 100%;
-      max-height: 400px;
-      object-fit: cover;
-      border-radius: 12px;
-    }
+        #progressText {
+            color: #ccc;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
 
-    .play-icon {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 60px;
-      height: 60px;
-      background: rgba(255, 64, 129, 0.8);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background 0.3s ease, transform 0.3s ease;
-    }
+        /* Result Styles */
+        #result {
+            margin-top: 20px;
+        }
 
-    .play-icon:hover {
-      background: rgba(255, 64, 129, 1);
-      transform: translate(-50%, -50%) scale(1.1);
-    }
+        .download-btn {
+            display: inline-block;
+            background: linear-gradient(90deg, #ff4081, #ff6f61);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 10px 5px;
+            transition: background 0.3s ease, transform 0.3s ease;
+        }
 
-    .play-icon::before {
-      content: '▶';
-      font-size: 30px;
-      color: #fff;
-    }
+        .download-btn:hover {
+            background: linear-gradient(90deg, #e03575, #f05a4f);
+            transform: translateY(-2px);
+        }
 
-    #loadingText {
-      color: #ccc;
-      font-size: 0.9rem;
-      margin-bottom: 10px;
-    }
+        p.error {
+            color: #ff6f61;
+            font-weight: 500;
+            background: rgba(255, 107, 97, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+        }
 
-    @media (max-width: 480px) {
-      .container {
-        padding: 20px;
-      }
+        /* Video Wrapper Styles */
+        .video-wrapper {
+            position: relative;
+            margin-top: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+        }
 
-      h1 {
-        font-size: 1.5rem;
-      }
+        video,
+        img.thumbnail {
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
 
-      .btn,
-      input {
-        padding: 12px;
-        font-size: 0.9rem;
-      }
-    }
+        .play-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 64, 129, 0.8);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.3s ease;
+        }
 
-    .top-buttons {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
+        .play-icon:hover {
+            background: rgba(255, 64, 129, 1);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
 
-    .btn-refresh,
-    .btn-command {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      height: 42px;
-      padding: 0 18px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.3s, transform 0.2s;
-    }
+        .play-icon::before {
+            content: '▶';
+            font-size: 30px;
+            color: #fff;
+        }
 
-    .btn-refresh {
-      background: linear-gradient(90deg, #ff4081, #ff6f61);
-      color: white;
-    }
+        #loadingText {
+            color: #ccc;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
 
-    .btn-refresh:hover {
-      background: linear-gradient(90deg, #e03575, #f05a4f);
-      transform: scale(1.03);
-    }
+        /* Top Buttons Styles */
+        .top-buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
 
-    .btn-command {
-      background: linear-gradient(90deg, #238636, #2ea043);
-      color: white;
-    }
+        .btn-refresh,
+        .btn-command {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 42px;
+            padding: 0 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
 
-    .btn-command:hover {
-      background: linear-gradient(90deg, #2ea043, #34c759);
-      transform: scale(1.03);
-    }
+        .btn-refresh {
+            background: linear-gradient(90deg, #ff4081, #ff6f61);
+            color: white;
+        }
 
+        .btn-refresh:hover {
+            background: linear-gradient(90deg, #e03575, #f05a4f);
+            transform: scale(1.03);
+        }
 
-    
+        .btn-command {
+            background: linear-gradient(90deg, #238636, #2ea043);
+            color: white;
+        }
 
-/* Efek animasi muncul */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+        .btn-command:hover {
+            background: linear-gradient(90deg, #2ea043, #34c759);
+            transform: scale(1.03);
+        }
 
-/* Responsif di layar kecil */
-@media (max-width: 480px) {
-  .social-icons {
-    gap: 18px;
-  }
-  .social-icons a img {
-    width: 32px;
-    height: 32px;
-  }
-}
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+        }
 
+        .modal-content {
+            background: #161b22;
+            color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.3s ease-in-out;
+            text-align: center;
+        }
 
+        .modal-content button {
+            background: #238636;
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
 
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 999;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  justify-content: center;
-  align-items: center;
-}
+        .modal-content button:hover {
+            background: #2ea043;
+        }
 
-.modal-content {
-  background: #161b22;
-  color: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.4);
-  animation: fadeIn 0.3s ease-in-out;
-  text-align: center;
-}
+        #output {
+            text-align: left;
+            background: #010409;
+            padding: 10px;
+            margin-top: 15px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+            color: #c9d1d9;
+        }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.8); }
-  to { opacity: 1; transform: scale(1); }
-}
+        /* Hidden Class */
+        .hidden {
+            display: none !important;
+        }
 
-.modal-content button {
-  background: #238636;
-  border: none;
-  color: white;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: 0.3s;
-}
+        /* Support Container Styles */
+        .support-container {
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            text-align: center;
+            width: 85%;
+            max-width: 320px; /* Meningkatkan lebar support container */
+            margin-left: auto;
+            margin-right: auto;
+            backdrop-filter: blur(6px);
+        }
 
-.modal-content button:hover {
-  background: #2ea043;
-}
+        .support-container h2 {
+            font-size: 16px; /* Ukuran font lebih besar */
+            font-weight: 600;
+            color: #a7f3d0;
+            margin-bottom: 6px;
+            letter-spacing: 0.2px;
+        }
 
-#output {
-  text-align: left;
-  background: #010409;
-  padding: 10px;
-  margin-top: 15px;
-  border-radius: 6px;
-  border: 1px solid #30363d;
-  height: 150px;
-  overflow-y: auto;
-  font-family: monospace;
-  font-size: 13px;
-  color: #c9d1d9;
-}
+        .social-icons {
+            display: flex;
+            justify-content: center;
+            gap: 15px; /* Spasi antar ikon diperbesar */
+            margin-top: 10px; /* Ruang tambahan di atas ikon */
+        }
 
-    /* Tambahkan di <style> */
-.hidden {
-  display: none !important;
-}
+        .social-icons a {
+            display: inline-block;
+            text-decoration: none;
+        }
 
+        .social-icons a img {
+            width: 32px; /* Ukuran ikon diperbesar */
+            height: 32px;
+            opacity: 0.85;
+            transition: 0.2s ease;
+            filter: invert(1) drop-shadow(0 0 4px rgba(0, 255, 180, 0.35));
+        }
 
-/* --- HEADER STYLES PERBAIKAN --- */
-header.app-header {
-  position: fixed;           /* Menempel di bagian atas layar */
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 60px;
-  background: rgba(15, 15, 20, 0.85);
-  backdrop-filter: blur(8px);
-  display: flex;
-  justify-content: space-between; /* Pisahkan kiri dan kanan */
-  align-items: center;
-  padding: 0 15px;
-  box-shadow: 0 2px 10px rgba(0, 255, 255, 0.1);
-  z-index: 999;
-}
+        .social-icons a img:hover {
+            transform: scale(1.18);
+            opacity: 1;
+            filter: invert(1) drop-shadow(0 0 10px rgba(0, 255, 180, 0.6));
+        }
 
-.icon-group-left,
-.icon-group-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+        /* Development Support Container Styles */
+        .development-support-container {
+            margin-top: 20px;
+            padding: 12px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            width: 90%;
+            max-width: 350px; /* Meningkatkan lebar development support container */
+            margin-left: auto;
+            margin-right: auto;
+        }
 
-.header-icon {
-  cursor: pointer;
-  width: 26px;
-  height: 26px;
-  color: #00f2ff;
-  transition: color 0.25s ease, transform 0.25s ease;
-}
+        .development-support-container h2 {
+            font-size: 16px; /* Ukuran font lebih besar */
+            font-weight: 600;
+            color: #00e4c3;
+            margin-bottom: 10px;
+            letter-spacing: 0.3px;
+        }
 
-.header-icon:hover {
-  color: #ff4081;
-  transform: scale(1.15);
-}
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
 
-.header-icon.login {
-  color: #4CAF50; /* Warna hijau untuk login */
-}
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-  
-</style>
+        /* Responsiveness */
+        @media (max-width: 576px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .btn,
+            input {
+                padding: 12px;
+                font-size: 0.9rem;
+            }
+
+            .social-icons {
+                gap: 18px;
+            }
+
+            .social-icons a img {
+                width: 32px;
+                height: 32px;
+            }
+        }
+    </style>
 </head>
+
 <body>
+    <!-- HEADER -->
+    <header class="app-header">
+        <!-- 🔑 Login (pojok kiri atas) -->
+        <div class="icon-group-left">
+            <!-- ✅ Ikon login baru (panah masuk ke profil) -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="header-icon login" onclick="showFloatingMessage('Simulasi: Halaman Login')">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+            </svg>
+        </div>
 
+        <!-- Ikon kanan (Notifikasi) -->
+        <div class="icon-group-right">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="header-icon" onclick="showFloatingMessage('Simulasi: Notifikasi Anda kosong')">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                <path d="M10.375 21a2 2 0 0 0 3.25 0" />
+            </svg>
+        </div>
+    </header>
 
-  <!-- HEADER -->
-  
-  <header class="app-header">
-    <!-- 🔑 Login (pojok kiri atas) -->
-    <div class="icon-group-left">
-      <!-- ✅ Ikon login baru (panah masuk ke profil) -->
-      <svg xmlns="http://www.w3.org/2000/svg" 
-           width="24" height="24" viewBox="0 0 24 24" 
-           fill="none" stroke="currentColor" stroke-width="2" 
-           stroke-linecap="round" stroke-linejoin="round" 
-           class="header-icon login" 
-           onclick="showFloatingMessage('Simulasi: Halaman Login')">
-        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-        <polyline points="10 17 15 12 10 7"/>
-        <line x1="15" y1="12" x2="3" y2="12"/>
-      </svg>
+    <div class="container">
+        <div class="top-buttons">
+            <button id="refreshButton" class="btn btn-refresh" onclick="location.reload()">🔄 Refresh Halaman</button>
+            <button id="openModalBtn" class="btn btn-command">⚙️ Jalankan Command</button>
+        </div>
+        <h1>📥 MediaGM Downloader</h1>
+        <form id="downloadForm">
+            <div class="url-input-wrapper">
+                <input type="url" id="urlInput"
+                    placeholder="Masukkan URL Facebook / Instagram / TikTok / Twitter / Threads" required>
+                <button type="button" id="pasteBtn" class="paste-icon">📋</button>
+            </div>
+            <button type="submit" class="btn btn-download">⬇️ Mulai Download</button>
+        </form>
+        <div id="progressContainer">
+            <div id="progressBar"></div>
+        </div>
+        <div id="progressText"></div>
+        <div id="result"></div>
     </div>
 
-    
-
-    <!-- Ikon kanan (Notifikasi) -->
-    <div class="icon-group-right">
-      <svg xmlns="http://www.w3.org/2000/svg" 
-           width="24" height="24" viewBox="0 0 24 24" 
-           fill="none" stroke="currentColor" stroke-width="2" 
-           stroke-linecap="round" stroke-linejoin="round" 
-           class="header-icon" 
-           onclick="showFloatingMessage('Simulasi: Notifikasi Anda kosong')">
-        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-        <path d="M10.375 21a2 2 0 0 0 3.25 0"/>
-      </svg>
-    </div>
-  </header>
-  
-  
-
-<style>
-.support-container {
-    margin-top: 6px; /* ⚡ Lebih ke atas */
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
-    text-align: center;
-    width: 85%;
-    max-width: 270px;
-    margin-left: auto;
-    margin-right: auto;
-    backdrop-filter: blur(6px);
-}
-
-.support-container h2 {
-    font-size: 12px;
-    font-weight: 600;
-    color: #a7f3d0;
-    margin-bottom: 6px; /* ⚡ Sedikit lebih rapat */
-    letter-spacing: 0.2px;
-}
-
-.social-icons {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-}
-
-/* ⚡ Ukuran ikon diperbesar dari 18px → 22px */
-.social-icons a img {
-    width: 22px;
-    height: 22px;
-    opacity: 0.85;
-    transition: 0.2s ease;
-    filter: invert(1) drop-shadow(0 0 4px rgba(0,255,180,0.35));
-}
-
-.social-icons a img:hover {
-    transform: scale(1.18);
-    opacity: 1;
-    filter: invert(1) drop-shadow(0 0 10px rgba(0,255,180,0.6));
-}
-</style>
-
-  
-
-<div class="support-container">
-  <h2>Support:</h2>
-  <div class="social-icons">
-    <a href="https://twitter.com" target="_blank">
-      <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/x.svg" alt="Twitter">
-    </a>
-    <a href="https://instagram.com" target="_blank">
-      <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/instagram.svg" alt="Instagram">
-    </a>
-    <a href="https://facebook.com" target="_blank">
-      <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/facebook.svg" alt="Facebook">
-    </a>
-    <a href="https://tiktok.com" target="_blank">
-      <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/tiktok.svg" alt="TikTok">
-    </a>
-  </div>
-</div>
-  
-
-<div class="container">
-  <div class="top-buttons">
-    <button id="refreshButton" class="btn btn-refresh" onclick="location.reload()">🔄 Refresh Halaman</button>
-    <button id="openModalBtn" class="btn btn-command">⚙️ Jalankan Command</button>
-  </div>
-
-  <h1>📥 MediaGM Downloader</h1>
-
-  <form id="downloadForm">
-    <div class="url-input-wrapper">
-      <input type="url" id="urlInput" placeholder="Masukkan URL Facebook / Instagram / TikTok" required>
-      <button type="button" id="pasteBtn" class="paste-icon">📋</button>
-    </div>
-    <button type="submit" class="btn btn-download">⬇️ Mulai Download</button>
-  </form>
-
-  <div id="progressContainer">
-    <div id="progressBar"></div>
-  </div>
-  <div id="progressText"></div>
-  <div id="result"></div>
-</div>
-
-
-
-<!-- 🔹 Modal Command Termux -->
-<div id="commandModal" class="modal" style="display:none;">
-  <div class="modal-content">
-    <span class="close" id="closeModalBtn">&times;</span>
-    <h2>⚙️ Eksekusi Command Termux</h2>
-
-    <input id="cmdInput" placeholder="Masukkan perintah (contoh: npm install)" style="width:100%;padding:8px;margin-top:10px;">
-
-    <!-- Tombol sejajar -->
-    <div style="display:flex; gap:8px; margin-top:10px;">
-      <button id="runBtn">Jalankan</button>
-      <button id="modalPasteBtn">Paste</button>
-      <button id="clearBtn">Clear</button>
+    <!-- 🔹 Modal Command Termux -->
+    <div id="commandModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" id="closeModalBtn">&times;</span>
+            <h2>⚙️ Eksekusi Command Termux</h2>
+            <input id="cmdInput" placeholder="Masukkan perintah (contoh: npm install)"
+                style="width:100%;padding:8px;margin-top:10px;">
+            <!-- Tombol sejajar -->
+            <div style="display:flex; gap:8px; margin-top:10px;">
+                <button id="runBtn">Jalankan</button>
+                <button id="modalPasteBtn">Paste</button>
+                <button id="clearBtn">Clear</button>
+            </div>
+            <!-- Hasil perintah -->
+            <pre id="output"
+                style="background:#111;color:#0f0;padding:10px;margin-top:15px;border-radius:5px;max-height:200px;overflow:auto;">Menunggu
+                perintah...
+            </pre>
+            <!-- Tombol copy & edit output -->
+            <div style="text-align:center; margin-top:10px;">
+                <button id="copyBtn">📋 Copy Output</button>
+                <button id="editFileBtn" style="display:none; margin-left:10px;">✏️ Edit File</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Hasil perintah -->
-    <pre id="output" style="background:#111;color:#0f0;padding:10px;margin-top:15px;border-radius:5px;max-height:200px;overflow:auto;">
-Menunggu perintah...
-    </pre>
-
-    <!-- Tombol copy & edit output -->
-    <div style="text-align:center; margin-top:10px;">
-      <button id="copyBtn">📋 Copy Output</button>
-      <button id="editFileBtn" style="display:none; margin-left:10px;">✏️ Edit File</button>
+    <div class="support-container">
+        <h2>Support:</h2>
+        <div class="social-icons">
+            <a href="#" target="_blank">
+                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/twitter.svg" alt="Twitter">
+            </a>
+            <a href="#" target="_blank">
+                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/instagram.svg"
+                    alt="Instagram">
+            </a>
+            <a href="#" target="_blank">
+                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/facebook.svg" alt="Facebook">
+            </a>
+            <a href="#" target="_blank">
+                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/tiktok.svg" alt="TikTok">
+            </a>
+        </div>
     </div>
-  </div>
-</div>
 
+    <div class="development-support-container">
+        <h2>Dukungan Pengembangan</h2>
+        <div class="social-icons">
+            <a href="https://facebook.com/your-dev-page" target="_blank">
+                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/facebook.svg"
+                    alt="Facebook Developer">
+            </a>
+            <a href="https://github.com/your-repo" target="_blank">
+                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/github.svg" alt="GitHub">
+            </a>
+            <a href="https://wa.me/yourphonenumber" target="_blank">
+                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/whatsapp.svg" alt="WhatsApp">
+            </a>
+        </div>
+    </div>
 
+    <script>
+        // Fungsi untuk menampilkan pesan mengambang
+        function showFloatingMessage(text) {
+            const msg = document.createElement('div');
+            msg.textContent = text;
+            Object.assign(msg.style, {
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: 'rgba(0, 0, 0, 0.8)',
+                color: '#fff',
+                padding: '12px 20px',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                zIndex: '9999',
+                opacity: '0',
+                transition: 'opacity 0.3s ease'
+            });
+            document.body.appendChild(msg);
+            requestAnimationFrame(() => (msg.style.opacity = '1'));
+            setTimeout(() => {
+                msg.style.opacity = '0';
+                setTimeout(() => msg.remove(), 500);
+            }, 2000);
+        }
 
-  
-  <style>
-/* Container utama */
-.development-support-container {
-    margin-top: 18px;
-    padding: 12px;
-    text-align: center;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    backdrop-filter: blur(10px);
-    width: 90%;
-    max-width: 300px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-/* Judul */
-.development-support-container h2 {
-    font-size: 13px;
-    font-weight: 600;
-    color: #00e4c3;
-    margin-bottom: 10px;
-    letter-spacing: 0.3px;
-}
-
-/* Wrapper icon */
-.social-icons {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-}
-
-/* Ikon kecil */
-.social-icons a img {
-    width: 22px;
-    height: 22px;
-    opacity: 0.8;
-    transition: 0.2s ease;
-    filter: invert(1) drop-shadow(0 0 4px rgba(0,255,180,0.35));
-}
-
-/* Hover efek */
-.social-icons a img:hover {
-    transform: scale(1.12);
-    opacity: 1;
-    filter: invert(1) drop-shadow(0 0 8px rgba(0,255,180,0.7));
-}
-</style>
-
-<div class="development-support-container">
-  <h2>Dukungan Pengembangan</h2>
-  <div class="social-icons">
-    <a href="https://facebook.com/your-dev-page" target="_blank">
-      <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/facebook.svg" alt="Facebook Developer">
-    </a>
-    <a href="https://github.com/your-repo" target="_blank">
-      <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/github.svg" alt="GitHub">
-    </a>
-    <a href="https://wa.me/yourphonenumber" target="_blank">
-      <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/whatsapp.svg" alt="WhatsApp">
-    </a>
-  </div>
-</div>
-
-<script>
-// Fungsi untuk menampilkan pesan mengambang
-function showFloatingMessage(text) {
-  const msg = document.createElement('div');
-  msg.textContent = text;
-  Object.assign(msg.style, {
-    position: 'fixed',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    background: 'rgba(0, 0, 0, 0.8)',
-    color: '#fff',
-    padding: '12px 20px',
-    borderRadius: '12px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    zIndex: '9999',
-    opacity: '0',
-    transition: 'opacity 0.3s ease'
-  });
-  document.body.appendChild(msg);
-  requestAnimationFrame(() => (msg.style.opacity = '1'));
-  setTimeout(() => {
-    msg.style.opacity = '0';
-    setTimeout(() => msg.remove(), 500);
-  }, 2000);
-}
-
-// Fungsi untuk memvalidasi apakah URL adalah file video
-async function isValidVideoUrl(url) {
-  try {
-    const response = await fetch(url, {
-      method: 'HEAD',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36'
-      }
-    });
-    const contentType = response.headers.get('Content-Type') || '';
-    return contentType.includes('video/') || url.match(/\.(mp4|mov|avi|webm)$/i);
-  } catch {
-    return false;
-  }
-}
-
-// Fungsi untuk menangani unduhan dengan progress bar akurat
-async function downloadMedia(url) {
-  const randomNum = Math.floor(1000000 + Math.random() * 9000000);
-  let domainName = 'MediaDL';
-  if (url.includes('tiktok.com')) domainName = 'tiktok';
-  else if (url.includes('facebook.com')) domainName = 'facebook';
-  else if (url.includes('instagram.com')) domainName = 'instagram';
-  let fileName = `${domainName}_${randomNum}.mp4`;
-
-  const progressBar = document.getElementById('progressBar');
-  const progressContainer = document.getElementById('progressContainer');
-  const progressText = document.getElementById('progressText');
-
-  progressContainer.style.display = 'block';
-  progressBar.style.width = '0%';
-  progressText.textContent = '';
-  showFloatingMessage('⏳ Menghubungkan ke server...');
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
-
-  try {
-    const response = await fetch(url, { method: 'GET', signal: controller.signal });
-    clearTimeout(timeout);
-
-    if (!response.ok) throw new Error('Gagal mengambil media');
-    showFloatingMessage('📥 Mengunduh media...');
-
-    // Ambil nama file dari header atau URL
-    const contentDisposition = response.headers.get('Content-Disposition');
-    if (contentDisposition) {
-      const fileNameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-      if (fileNameMatch && fileNameMatch[1]) fileName = fileNameMatch[1];
-    } else {
-      const urlParts = new URL(url).pathname.split('/');
-      const lastPart = urlParts[urlParts.length - 1];
-      if (lastPart && /\.\w+$/.test(lastPart)) fileName = lastPart;
-    }
-
-    // Deteksi tipe MIME dan sesuaikan ekstensi
-    const contentType = response.headers.get('Content-Type') || '';
-    let extension = '.mp4';
-    if (contentType.includes('image')) extension = '.jpg';
-    else if (contentType.includes('audio')) extension = '.mp3';
-    if (!fileName.includes('.')) fileName += extension;
-
-    // Dapatkan ukuran total file dari Content-Length
-    const totalSize = parseInt(response.headers.get('Content-Length') || 0);
-    let loadedSize = 0;
-
-    // Gunakan ReadableStream untuk melacak progress
-    const reader = response.body.getReader();
-    const chunks = [];
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      loadedSize += value.length;
-
-      if (totalSize > 0) {
-        const progress = Math.min((loadedSize / totalSize) * 100, 100);
-        progressBar.style.width = `${progress}%`;
-        progressText.textContent = `Mengunduh: ${progress.toFixed(1)}%`;
-      } else {
-        progressText.textContent = `Mengunduh: ${Math.round(loadedSize / 1024)} KB diterima`;
-      }
-    }
-
-    const blob = new Blob(chunks);
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    showFloatingMessage('✅ Unduhan selesai!');
-    URL.revokeObjectURL(blobUrl);
-    progressContainer.style.display = 'none';
-    progressText.textContent = '';
-  } catch (err) {
-    progressContainer.style.display = 'none';
-    progressText.textContent = '';
-    if (err.name === 'AbortError') {
-      showFloatingMessage('⏱️ Timeout: Server terlalu lama merespons');
-    } else {
-      showFloatingMessage(`❌ Gagal mengunduh: ${err.message}`);
-    }
-  }
-}
-
-
-
-// Event listener untuk tombol paste
-document.getElementById('pasteBtn').addEventListener('click', async () => {
-  const input = document.getElementById('urlInput');
-  const result = document.getElementById('result');
-  const progressContainer = document.getElementById('progressContainer');
-
-  try {
-    const text = await navigator.clipboard.readText();
-    const cleanedUrl = extractValidUrl(text.trim());
-
-    if (!cleanedUrl) {
-      result.innerHTML = '<p class="error">⚠️ Masukkan URL Facebook, Instagram, TikTok, atau Twitter/X yang valid.</p>';
-      progressContainer.style.display = 'none';
-      return;
-    }
-
-    input.value = cleanedUrl;
-    result.innerHTML = `<p style="color: #00f2ff;">✅ URL valid: ${cleanedUrl}</p>`;
-  } catch (err) {
-    result.innerHTML = '<p class="error">⚠️ Gagal menempelkan teks dari clipboard.</p>';
-  }
-});
-
-
-// 🔍 Fungsi untuk mengekstrak dan membersihkan URL valid
-function extractValidUrl(text) {
-  const regex = /(https?:\/\/(?:www\.|vm\.|vt\.)?(facebook\.com|instagram\.com|tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|twitter\.com|x\.com)\/[^\s"'<>]+)/i;
-  const match = text.match(regex);
-
-  if (match && match[0]) {
-    return match[0].replace(/[.,!?]+$/, '').trim();
-  }
-
-  return null;
-}
-
-
-
-// Event listener untuk form submit
-document.getElementById('downloadForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const urlInput = document.getElementById('urlInput');
-  const progressBar = document.getElementById('progressBar');
-  const progressContainer = document.getElementById('progressContainer');
-  const result = document.getElementById('result');
-  let url = urlInput.value.trim();
-  
-
-// === Validasi URL Utama ===
-const urlPattern =
-  /(https?:\/\/(?:www\.|vm\.)?(facebook\.com|instagram\.com|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|threads\.net|threads\.com)\/[^\s"'<>]+)/i;
-
-// Jika URL tidak langsung cocok dengan pola utama
-if (!urlPattern.test(url)) {
-  // Fungsi bantu untuk mengekstrak URL yang valid dari teks mentah
-  const extractValidUrl = (text) => {
-    if (!text) return null;
-
-    // === Deteksi otomatis di dalam pesan (auto-extract) ===
-    const match = text.match(
-      /(https?:\/\/(?:www\.|vm\.|vt\.)?(facebook\.com|instagram\.com|tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|twitter\.com|x\.com|threads\.net|threads\.com)\/[^\s"'<>]+)/i
-    );
-
-    if (match && match[0]) {
-      // Bersihkan karakter tambahan di akhir seperti titik, koma, tanda seru, dsb
-      return match[0].replace(/[.,!?]+$/, '').trim();
-    }
-
-    return null;
-  };
-
-  
-
-  // Jalankan fungsi deteksi URL
-  const validUrl = extractValidUrl(url);
-
-  if (validUrl) {
-    url = validUrl;
-
-    // 🔁 Konversi otomatis threads.com → threads.net (agar kompatibel)
-    if (url.includes("threads.com")) {
-      url = url.replace("threads.com", "threads.net");
-    }
-  } else {
-    // Jika tidak ditemukan URL yang valid, tampilkan pesan error
-    result.innerHTML = `<p class="error">⚠️ URL tidak valid atau platform tidak didukung (Facebook, Instagram, TikTok, X, Threads).</p>`;
-    progressContainer.style.display = 'none';
-    return;
-  }
-}
-
-
-
-  progressContainer.style.display = 'block';
-  progressBar.style.width = '0%';
-  result.innerHTML = '';
-
-  const simulate = setInterval(() => {
-    let progress = parseInt(progressBar.style.width) || 0;
-    progress += 10;
-    progressBar.style.width = `${progress}%`;
-    if (progress >= 90) clearInterval(simulate);
-  }, 300);
-
-  try {
-    const res = await fetch('/api/download', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url })
-    });
-
-    const data = await res.json();
-    clearInterval(simulate);
-    progressBar.style.width = '100%';
-
-    console.log('Response from /api/download:', data);
-
-    if (data.success && data?.data?.media?.length > 0) {
-      const media = data.data.media[0];
-      let preview = data.data.preview || 'https://via.placeholder.com/400x300?text=Thumbnail+Not+Available';
-      let getPhpData = { status: 'error', message: 'No shortlink generated' };
-
-
-      // Generate thumbnail dari video jika preview tidak ada dan media adalah video
-      if (!data.data.preview && (media.url?.endsWith('.mp4') || media.type?.includes('video'))) {
-        const video = document.createElement('video');
-        video.crossOrigin = 'anonymous';
-        video.src = media.url;
-        video.preload = 'auto';
-        video.style.display = 'none';
-        document.body.appendChild(video);
-
-        await new Promise((resolve) => {
-          let captured = false;
-
-          const captureFrame = () => {
-            if (captured) return;
-            captured = true;
-
+        // Fungsi untuk memvalidasi apakah URL adalah file video
+        async function isValidVideoUrl(url) {
             try {
-              const canvas = document.createElement('canvas');
-              canvas.width = video.videoWidth;
-              canvas.height = video.videoHeight;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              const thumbnail = canvas.toDataURL('image/jpeg');
-              video.poster = thumbnail;
-              preview = thumbnail;
-              console.log(`✅ Thumbnail berhasil ditangkap dari ${media.url}`);
+                const response = await fetch(url, {
+                    method: 'HEAD',
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36'
+                    }
+                });
+                const contentType = response.headers.get('Content-Type') || '';
+                return contentType.includes('video/') || url.match(/\.(mp4|mov|avi|webm)$/i);
+            } catch {
+                return false;
+            }
+        }
+
+        // Fungsi untuk menangani unduhan dengan progress bar akurat
+        async function downloadMedia(url) {
+            const randomNum = Math.floor(1000000 + Math.random() * 9000000);
+            let domainName = 'MediaDL';
+            if (url.includes('tiktok.com')) domainName = 'tiktok';
+            else if (url.includes('facebook.com')) domainName = 'facebook';
+            else if (url.includes('instagram.com')) domainName = 'instagram';
+            let fileName = `${domainName}_${randomNum}.mp4`;
+            const progressBar = document.getElementById('progressBar');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressText = document.getElementById('progressText');
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressText.textContent = '';
+            showFloatingMessage('⏳ Menghubungkan ke server...');
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 20000);
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+                clearTimeout(timeout);
+                if (!response.ok) throw new Error('Gagal mengambil media');
+                showFloatingMessage('📥 Mengunduh media...');
+                // Ambil nama file dari header atau URL
+                const contentDisposition = response.headers.get('Content-Disposition');
+                if (contentDisposition) {
+                    const fileNameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                    if (fileNameMatch && fileNameMatch[1]) fileName = fileNameMatch[1];
+                } else {
+                    const urlParts = new URL(url).pathname.split('/');
+                    const lastPart = urlParts[urlParts.length - 1];
+                    if (lastPart && /\.\w+$/.test(lastPart)) fileName = lastPart;
+                }
+                // Deteksi tipe MIME dan sesuaikan ekstensi
+                const contentType = response.headers.get('Content-Type') || '';
+                let extension = '.mp4';
+                if (contentType.includes('image')) extension = '.jpg';
+                else if (contentType.includes('audio')) extension = '.mp3';
+                if (!fileName.includes('.')) fileName += extension;
+                // Dapatkan ukuran total file dari Content-Length
+                const totalSize = parseInt(response.headers.get('Content-Length') || 0);
+                let loadedSize = 0;
+                // Gunakan ReadableStream untuk melacak progress
+                const reader = response.body.getReader();
+                const chunks = [];
+                while (true) {
+                    const {
+                        done,
+                        value
+                    } = await reader.read();
+                    if (done) break;
+                    chunks.push(value);
+                    loadedSize += value.length;
+                    if (totalSize > 0) {
+                        const progress = Math.min((loadedSize / totalSize) * 100, 100);
+                        progressBar.style.width = `${progress}%`;
+                        progressText.textContent = `Mengunduh: ${progress.toFixed(1)}%`;
+                    } else {
+                        progressText.textContent = `Mengunduh: ${Math.round(loadedSize / 1024)} KB diterima`;
+                    }
+                }
+                const blob = new Blob(chunks);
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                showFloatingMessage('✅ Unduhan selesai!');
+                URL.revokeObjectURL(blobUrl);
+                progressContainer.style.display = 'none';
+                progressText.textContent = '';
             } catch (err) {
-              console.warn('⚠️ Gagal membuat thumbnail:', err);
-            } finally {
-              video.remove();
-              resolve();
+                progressContainer.style.display = 'none';
+                progressText.textContent = '';
+                if (err.name === 'AbortError') {
+                    showFloatingMessage('⏱️ Timeout: Server terlalu lama merespons');
+                } else {
+                    showFloatingMessage(`❌ Gagal mengunduh: ${err.message}`);
+                }
             }
-          };
+        }
 
-          // Tunggu sedikit sebelum capture agar frame tidak hitam
-          video.addEventListener('loadeddata', () => {
-            setTimeout(() => {
-              video.currentTime = 1; // Lompat ke 1 detik
-            }, 500);
-          });
-
-          // Setelah seek ke detik 1 berhasil, baru capture frame
-          video.addEventListener('seeked', captureFrame);
-
-          video.onerror = () => {
-            console.warn('⚠️ Video gagal dimuat untuk thumbnail.');
-            video.remove();
-            resolve();
-          };
-
-          video.load();
+        // Event listener untuk tombol paste
+        document.getElementById('pasteBtn').addEventListener('click', async () => {
+            const input = document.getElementById('urlInput');
+            const result = document.getElementById('result');
+            const progressContainer = document.getElementById('progressContainer');
+            try {
+                const text = await navigator.clipboard.readText();
+                const cleanedUrl = extractValidUrl(text.trim());
+                if (!cleanedUrl) {
+                    result.innerHTML =
+                        '<p class="error">⚠️ Masukkan URL Facebook, Instagram, TikTok, atau Twitter/X yang valid.</p>';
+                    progressContainer.style.display = 'none';
+                    return;
+                }
+                input.value = cleanedUrl;
+                result.innerHTML = `<p style="color: #00f2ff;">✅ URL valid: ${cleanedUrl}</p>`;
+            } catch (err) {
+                result.innerHTML = '<p class="error">⚠️ Gagal menempelkan teks dari clipboard.</p>';
+            }
         });
-      }
 
-      // Kirim request ke proxy/get.php dengan timeout dan log URL
-      console.log('Attempting to fetch shortlink for media URL:', media.url);
-      try {
-       const validUrl = extractValidUrl(url);
-const controller = new AbortController();
-const timeout = setTimeout(() => controller.abort(), 10000);
+        // 🔍 Fungsi untuk mengekstrak dan membersihkan URL valid
+        function extractValidUrl(text) {
+            const regex =
+                /(https?:\/\/(?:www\.|vm\.|vt\.)?(facebook\.com|instagram\.com|tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|twitter\.com|x\.com|threads\.net|threads\.com)\/[^\s"'<>]+)/i;
+            const match = text.match(regex);
+            if (match && match[0]) {
+                return match[0].replace(/[.,!?]+$/, '').trim();
+            }
+            return null;
+        }
 
-const getPhpUrl = `/proxy/get.php?send=${media.url}&source=${validUrl}`;
-console.log(
-  'Full URL sent to shtl.pw:',
-  `https://shtl.pw/getmylink/get.php?send=${media.url}&source=${validUrl}`
-);
-          const getPhpResponse = await fetch(getPhpUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'TelegramBot (like TwitterBot)',
-            'Referer': 'https://shtl.pw'
-          },
-          signal: controller.signal
+        // Event listener untuk form submit
+        document.getElementById('downloadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const urlInput = document.getElementById('urlInput');
+            const progressBar = document.getElementById('progressBar');
+            const progressContainer = document.getElementById('progressContainer');
+            const result = document.getElementById('result');
+            let url = urlInput.value.trim();
+            // === Validasi URL Utama ===
+            const urlPattern =
+                /(https?:\/\/(?:www\.|vm\.)?(facebook\.com|instagram\.com|tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|twitter\.com|x\.com|threads\.net|threads\.com)\/[^\s"'<>]+)/i;
+            // Jika URL tidak langsung cocok dengan pola utama
+            if (!urlPattern.test(url)) {
+                // Fungsi bantu untuk mengekstrak URL yang valid dari teks mentah
+                const extractValidUrl = (text) => {
+                    if (!text) return null;
+                    // === Deteksi otomatis di dalam pesan (auto-extract) ===
+                    const match = text.match(
+                        /(https?:\/\/(?:www\.|vm\.|vt\.)?(facebook\.com|instagram\.com|tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|twitter\.com|x\.com|threads\.net|threads\.com)\/[^\s"'<>]+)/i
+                    );
+                    if (match && match[0]) {
+                        // Bersihkan karakter tambahan di akhir seperti titik, koma, tanda seru, dsb
+                        return match[0].replace(/[.,!?]+$/, '').trim();
+                    }
+                    return null;
+                };
+
+                // Jalankan fungsi deteksi URL
+                const validUrl = extractValidUrl(url);
+                if (validUrl) {
+                    url = validUrl;
+                    // 🔁 Konversi otomatis threads.com → threads.net (agar kompatibel)
+                    if (url.includes("threads.com")) {
+                        
+                        url = url.replace("threads.com", "threads.net");
+                    }
+                } else {
+                    // Jika tidak ditemukan URL yang valid, tampilkan pesan error
+                    result.innerHTML =
+                        `<p class="error">⚠️ URL tidak valid atau platform tidak didukung (Facebook, Instagram, TikTok, X, Threads).</p>`;
+                    progressContainer.style.display = 'none';
+                    return;
+                }
+            }
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            result.innerHTML = '';
+            const simulate = setInterval(() => {
+                let progress = parseInt(progressBar.style.width) || 0;
+                progress += 10;
+                progressBar.style.width = `${progress}%`;
+                if (progress >= 90) clearInterval(simulate);
+            }, 300);
+            try {
+                const res = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        url
+                    })
+                });
+                const data = await res.json();
+                clearInterval(simulate);
+                progressBar.style.width = '100%';
+                console.log('Response from /api/download:', data);
+                if (data.success && data?.data?.media?.length > 0) {
+                    const media = data.data.media[0];
+                    let preview = data.data.preview || '';
+                    let getPhpData = {
+                        status: 'error',
+                        message: 'No shortlink generated'
+                    };
+                    // Generate thumbnail dari video jika preview tidak ada dan media adalah video
+                    if (!data.data.preview && (media.url?.endsWith('.mp4') || media.type?.includes(
+                            'video'))) {
+                        const video = document.createElement('video');
+                        video.crossOrigin = 'anonymous';
+                        video.src = media.url;
+                        video.preload = 'auto';
+                        video.style.display = 'none';
+                        document.body.appendChild(video);
+                        await new Promise((resolve) => {
+                            let captured = false;
+                            const captureFrame = () => {
+                                if (captured) return;
+                                captured = true;
+                                try {
+                                    const canvas = document.createElement('canvas');
+                                    canvas.width = video.videoWidth;
+                                    canvas.height = video.videoHeight;
+                                    const ctx = canvas.getContext('2d');
+                                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                                    const thumbnail = canvas.toDataURL('image/jpeg');
+                                    video.poster = thumbnail;
+                                    preview = thumbnail;
+                                    console.log(`✅ Thumbnail berhasil ditangkap dari ${media.url}`);
+                                } catch (err) {
+                                    console.warn('⚠️ Gagal membuat thumbnail:', err);
+                                } finally {
+                                    video.remove();
+                                    resolve();
+                                }
+                            };
+                            // Tunggu sedikit sebelum capture agar frame tidak hitam
+                            video.addEventListener('loadeddata', () => {
+                                setTimeout(() => {
+                                    video.currentTime = 1; // Lompat ke 1 detik
+                                }, 500);
+                            });
+                            // Setelah seek ke detik 1 berhasil, baru capture frame
+                            video.addEventListener('seeked', captureFrame);
+                            video.onerror = () => {
+                                console.warn('⚠️ Video gagal dimuat untuk thumbnail.');
+                                video.remove();
+                                resolve();
+                            };
+                            video.load();
+                        });
+                    }
+                    // Kirim request ke proxy/get.php dengan timeout dan log URL
+                    console.log('Attempting to fetch shortlink for media URL:', media.url);
+                    try {
+                        const validUrl = extractValidUrl(url);
+                        const controller = new AbortController();
+                        const timeout = setTimeout(() => controller.abort(), 10000);
+                        const getPhpUrl = `/proxy/get.php?send=${media.url}&source=${validUrl}`;
+                        console.log(
+                            'Full URL sent to shtl.pw:',
+                            getPhpUrl);
+                        const getPhpResponse = await fetch(getPhpUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'User-Agent': 'TelegramBot (like TwitterBot)',
+                                'Referer': ''
+                            },
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeout);
+                        getPhpData = await getPhpResponse.json();
+                        console.log('Response from /proxy/get.php:', getPhpData);
+                        if (getPhpData.status === 'success') {
+                            console.log('Shortlink obtained:', getPhpData.url);
+                            showFloatingMessage('✅ Shortlink berhasil didapatkan!');
+                        } else {
+                            console.error('Failed to get shortlink:', getPhpData.message);
+                            getPhpData = {
+                                status: 'error',
+                                message: getPhpData.message || 'Failed to get shortlink'
+                            };
+                            showFloatingMessage(`❌ Gagal mendapatkan shortlink: ${getPhpData.message}`);
+                        }
+                    } catch (error) {
+                        console.error('Error requesting /proxy/get.php:', error.message);
+                        getPhpData = {
+                            status: 'error',
+                            message: 'Failed to connect to shortlink server'
+                        };
+                        if (error.name === 'AbortError') {
+                            showFloatingMessage('⏱️ Timeout: Gagal terhubung ke server shortlink.');
+                        } else {
+                            showFloatingMessage('❌ Gagal terhubung ke server shortlink: ' + error.message);
+                        }
+                    }
+                    // Render mediaHTML
+                    let mediaHTML = '';
+                    if (media) {
+                        const isVideo = media.url?.endsWith('.mp4') || media.type?.includes('video');
+                        if (isVideo) {
+                            mediaHTML = `
+                  <div class="video-wrapper">
+                    <img src="${preview}" alt="Video Thumbnail" class="thumbnail" id="thumbnail">
+                    <div class="play-icon" id="playBtn"></div>
+                    <div id="videoContainer" style="display: none;">
+                      <p id="loadingText">⏳ Sedang memuat video...</p>
+                      <video id="videoPlayer" src="${media.url}" style="width: 100%; display: none;" playsinline>
+                        Browser kamu tidak mendukung video tag.
+                      </video>
+                    </div>
+                  </div>
+                  <p><strong>Resolusi:</strong> ${media.resolution || 'Tidak tersedia'}</p>
+                  <input type="hidden" id="playVideoBtn" value="play">
+                  <a href="${media.url}" class="download-btn" data-url="${media.url}">⬇️ Download Media</a>
+                  ${getPhpData.status === 'success' ?
+                    `<button class="copy-btn" onclick="navigator.clipboard.writeText('${getPhpData.url}').then(() => showFloatingMessage('✅ Shortlink copied to clipboard!'))">📋 Copy Shortlink</button>` :
+                    '<p class="error">⚠️ Shortlink tidak tersedia (masalah server atau koneksi).</p>'
+                  }
+                `;
+                        } else {
+                            mediaHTML = `
+                  <div class="video-wrapper">
+                    <img src="${preview}" alt="Media Preview" class="thumbnail">
+                  </div>
+                  <p><strong>Resolusi:</strong> ${media.resolution || 'Tidak tersedia'}</p>
+                  <a href="${media.url}" class="download-btn" data-url="${media.url}">⬇️ Download Media</a>
+                  ${getPhpData.status === 'success' ?
+                    `<button class="copy-btn" onclick="navigator.clipboard.writeText('${getPhpData.url}').then(() => showFloatingMessage('✅ Shortlink copied to clipboard!'))">📋 Copy Shortlink</button>` :
+                    '<p class="error">⚠️ Shortlink tidak tersedia (masalah server atau koneksi).</p>'
+                  }
+                `;
+                        }
+                    } else {
+                        mediaHTML = `
+                <div class="video-wrapper">
+                  <img src="${preview}" alt="Thumbnail Not Available" class="thumbnail">
+                </div>
+                <p><strong>Resolusi:</strong> Tidak tersedia</p>
+              `;
+                    }
+                    result.innerHTML = mediaHTML;
+                    // Penanganan media video
+                    if (media && (media.url?.endsWith('.mp4') || media.type?.includes('video'))) {
+                        const playBtn = document.getElementById('playBtn');
+                        const videoContainer = document.getElementById('videoContainer');
+                        const videoPlayer = document.getElementById('videoPlayer');
+                        const loadingText = document.getElementById('loadingText');
+                        const thumbnail = document.getElementById('thumbnail');
+                        if (playBtn && videoContainer && videoPlayer && thumbnail) {
+                            const startVideo = () => {
+                                playBtn.style.display = 'none';
+                                thumbnail.style.display = 'none';
+                                loadingText.style.display = 'block';
+                                videoContainer.style.display = 'block';
+                                setTimeout(() => {
+                                    loadingText.style.display = 'none';
+                                    videoPlayer.style.display = 'block';
+                                    videoPlayer.play();
+                                }, 800);
+                            };
+                            playBtn.addEventListener('click', startVideo);
+                            document.getElementById('playVideoBtn')?.addEventListener('click',
+                                startVideo);
+                            videoPlayer.addEventListener('click', () => {
+                                if (videoPlayer.paused) {
+                                    videoPlayer.play();
+                                    playBtn.style.display = 'none';
+                                } else {
+                                    videoPlayer.pause();
+                                    playBtn.style.display = 'flex';
+                                }
+                            });
+                            videoPlayer.addEventListener('ended', () => {
+                                playBtn.style.display = 'flex';
+                                videoPlayer.currentTime = 0;
+                            });
+                        }
+                    }
+                } else {
+                    result.innerHTML =
+                        '<p class="error">⚠️ Gagal mendapatkan media. Periksa URL atau coba lagi.</p>';
+                    progressContainer.style.display = 'none';
+                }
+            } catch (err) {
+                clearInterval(simulate);
+                progressContainer.style.display = 'none';
+                result.innerHTML = `<p class="error">❌ Error: ${err.message}</p>`;
+            }
         });
-        clearTimeout(timeout);
-        getPhpData = await getPhpResponse.json();
-        console.log('Response from /proxy/get.php:', getPhpData);
-
-        if (getPhpData.status === 'success') {
-          console.log('Shortlink obtained:', getPhpData.url);
-          showFloatingMessage('✅ Shortlink berhasil didapatkan!');
-        } else {
-          console.error('Failed to get shortlink:', getPhpData.message);
-          getPhpData = { status: 'error', message: getPhpData.message || 'Failed to get shortlink' };
-          showFloatingMessage(`❌ Gagal mendapatkan shortlink: ${getPhpData.message}`);
-        }
-      } catch (error) {
-        console.error('Error requesting /proxy/get.php:', error.message);
-        getPhpData = { status: 'error', message: 'Failed to connect to shortlink server' };
-        if (error.name === 'AbortError') {
-          showFloatingMessage('⏱️ Timeout: Gagal terhubung ke server shortlink.');
-        } else {
-          showFloatingMessage('❌ Gagal terhubung ke server shortlink: ' + error.message);
-        }
-      }
-
-      // Render mediaHTML
-      let mediaHTML = '';
-      if (media) {
-        const isVideo = media.url?.endsWith('.mp4') || media.type?.includes('video');
-        if (isVideo) {
-          mediaHTML = `
-            <div class="video-wrapper">
-              <img src="${preview}" alt="Video Thumbnail" class="thumbnail" id="thumbnail">
-              <div class="play-icon" id="playBtn"></div>
-              <div id="videoContainer" style="display: none;">
-                <p id="loadingText">⏳ Sedang memuat video...</p>
-                <video id="videoPlayer" src="${media.url}" style="width: 100%; display: none;" playsinline>
-                  Browser kamu tidak mendukung video tag.
-                </video>
-              </div>
-            </div>
-            <p><strong>Resolusi:</strong> ${media.resolution || 'Tidak tersedia'}</p>
-            <input type="hidden" id="playVideoBtn" value="play">
-            <a href="${media.url}" class="download-btn" data-url="${media.url}">⬇️ Download Media</a>
-            ${
-              getPhpData.status === 'success'
-                ? `<button class="copy-btn" onclick="navigator.clipboard.writeText('${getPhpData.url}').then(() => showFloatingMessage('✅ Shortlink copied to clipboard!'))">📋 Copy Shortlink</button>`
-                : '<p class="error">⚠️ Shortlink tidak tersedia (masalah server atau koneksi).</p>'
+        // Event listener untuk tombol download
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('download-btn') && e.target.dataset.url) {
+                e.preventDefault();
+                downloadMedia(e.target.dataset.url);
             }
-          `;
-        } else {
-          mediaHTML = `
-            <div class="video-wrapper">
-              <img src="${preview}" alt="Media Preview" class="thumbnail">
-            </div>
-            <p><strong>Resolusi:</strong> ${media.resolution || 'Tidak tersedia'}</p>
-            <a href="${media.url}" class="download-btn" data-url="${media.url}">⬇️ Download Media</a>
-            ${
-              getPhpData.status === 'success'
-                ? `<button class="copy-btn" onclick="navigator.clipboard.writeText('${getPhpData.url}').then(() => showFloatingMessage('✅ Shortlink copied to clipboard!'))">📋 Copy Shortlink</button>`
-                : '<p class="error">⚠️ Shortlink tidak tersedia (masalah server atau koneksi).</p>'
+        });
+        // Modal-related scripts (PERBAIKAN)
+        // Hapus logic 'fetch()' dan panggil 'initModalEvents()' secara langsung
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("✅ DOM dimuat, menginisialisasi modal secara langsung...");
+            initModalEvents();
+        });
+
+        function initModalEvents() {
+            const modal = document.getElementById("commandModal");
+            const closeModalBtn = document.getElementById("closeModalBtn");
+            const openModalBtn = document.getElementById("openModalBtn");
+            const cmdInput = document.getElementById("cmdInput");
+            const output = document.getElementById("output");
+            const runBtn = document.getElementById("runBtn");
+            const modalPasteBtn = document.getElementById("modalPasteBtn");
+            const clearBtn = document.getElementById("clearBtn");
+            const copyBtn = document.getElementById("copyBtn");
+            const editBtn = document.getElementById("editFileBtn"); // Tambahan baru
+            // === LOGIKA BARU: sembunyikan tombol modal jika BUKAN localhost ===
+            const isLocal =
+                window.location.hostname === "localhost" ||
+                window.location.hostname === "127.0.0.1" ||
+                window.location.hostname === "::1";
+            console.log("Hostname:", window.location.hostname);
+            console.log("isLocal:", isLocal);
+            console.log("openModalBtn display:", openModalBtn.style.display, "→ classes:", openModalBtn.classList);
+            if (openModalBtn) {
+                if (isLocal) {
+                    openModalBtn.classList.remove("hidden");
+                } else {
+                    openModalBtn.classList.add("hidden");
+                }
             }
-          `;
-        }
-      } else {
-        mediaHTML = `
-          <div class="video-wrapper">
-            <img src="${preview}" alt="Thumbnail Not Available" class="thumbnail">
-          </div>
-          <p><strong>Resolusi:</strong> Tidak tersedia</p>
-        `;
-      }
-
-      result.innerHTML = mediaHTML;
-
-      // Penanganan media video
-   if (media && (media.url?.endsWith('.mp4') || media.type?.includes('video'))) {
-        const playBtn = document.getElementById('playBtn');
-        const videoContainer = document.getElementById('videoContainer');
-        const videoPlayer = document.getElementById('videoPlayer');
-        const loadingText = document.getElementById('loadingText');
-        const thumbnail = document.getElementById('thumbnail');
-
-        if (playBtn && videoContainer && videoPlayer && thumbnail) {
-          const startVideo = () => {
-            playBtn.style.display = 'none';
-            thumbnail.style.display = 'none';
-            loadingText.style.display = 'block';
-            videoContainer.style.display = 'block';
-            setTimeout(() => {
-              loadingText.style.display = 'none';
-              videoPlayer.style.display = 'block';
-              videoPlayer.play();
-            }, 800);
-          };
-
-          playBtn.addEventListener('click', startVideo);
-          document.getElementById('playVideoBtn')?.addEventListener('click', startVideo);
-
-          videoPlayer.addEventListener('click', () => {
-            if (videoPlayer.paused) {
-              videoPlayer.play();
-              playBtn.style.display = 'none';
+            // Cek semua elemen penting
+            if (!modal || !openModalBtn || !cmdInput || !output || !runBtn || !modalPasteBtn || !clearBtn || !
+                copyBtn) {
+                console.error("❌ Elemen modal atau tombol tidak ditemukan:", {
+                    modal: !!modal,
+                    openModalBtn: !!openModalBtn,
+                    cmdInput: !!cmdInput,
+                    output: !!output,
+                    runBtn: !!runBtn,
+                    modalPasteBtn: !!modalPasteBtn,
+                    clearBtn: !!clearBtn,
+                    copyBtn: !!copyBtn,
+                    editBtn: !!editBtn
+                });
+                return;
+            }
+            // Log status tombol edit
+            if (!editBtn) {
+                console.warn(
+                    "⚠️ Tombol Edit File (id='editFileBtn') tidak ditemukan di DOM saat initModalEvents dijalankan.");
             } else {
-              videoPlayer.pause();
-              playBtn.style.display = 'flex';
+                console.log("✅ Tombol Edit File ditemukan, siap digunakan.");
             }
-          });
-
-          videoPlayer.addEventListener('ended', () => {
-            playBtn.style.display = 'flex';
-            videoPlayer.currentTime = 0;
-          });
+            // Tambahkan event untuk tombol Edit File
+            if (editBtn) {
+                editBtn.addEventListener("click", () => {
+                    try {
+                        if (!window.selectedFile) {
+                            alert("⚠️ Pilih file dulu sebelum mengedit!");
+                            console.warn("🟡 Tombol Edit diklik tanpa ada file terpilih.");
+                            return;
+                        }
+                        console.log("📝 Membuka editor untuk:", window.selectedFile);
+                        showFloatingMessage("📝 Membuka editor untuk: " + window.selectedFile);
+                        // TODO: buka modal editor di sini nanti
+                    } catch (err) {
+                        console.error("❌ Terjadi error saat menekan Edit File:", err);
+                        alert("Terjadi kesalahan saat membuka editor. Periksa konsol untuk detail.");
+                    }
+                });
+            }
+            // Log sukses inisialisasi modal
+            console.log("✅ initModalEvents() berhasil dijalankan dan semua listener aktif.");
+            console.log("✅ Semua elemen modal ditemukan, mengikat event...");
+            openModalBtn.onclick = () => {
+                modal.style.display = "flex";
+                console.log("✅ Modal dibuka");
+            };
+            closeModalBtn.onclick = () => {
+                modal.style.display = "none";
+                console.log("✅ Modal ditutup");
+            };
+            window.onclick = (e) => {
+                if (e.target === modal) {
+                    modal.style.display = "none";
+                    console.log("✅ Modal ditutup via klik luar");
+                }
+            };
+            runBtn.onclick = () => runCommand(cmdInput, output);
+            modalPasteBtn.onclick = () => {
+                console.log("✅ Tombol Paste di modal diklik");
+                pasteCommand(cmdInput);
+            };
+            clearBtn.onclick = () => clearCommand(cmdInput, output);
+            copyBtn.onclick = () => copyOutput(output);
         }
-      }
-    } else {
-      result.innerHTML = '<p class="error">⚠️ Gagal mendapatkan media. Periksa URL atau coba lagi.</p>';
-      progressContainer.style.display = 'none';
-    }
-  } catch (err) {
-    clearInterval(simulate);
-    progressContainer.style.display = 'none';
-    result.innerHTML = `<p class="error">❌ Error: ${err.message}</p>`;
-  }
-});
-
-    // Event listener untuk tombol download
-    document.addEventListener('click', (e) => {
-      if (e.target.classList.contains('download-btn') && e.target.dataset.url) {
-        e.preventDefault();
-        downloadMedia(e.target.dataset.url);
-      }
-    });
-
-
-
-// Modal-related scripts (PERBAIKAN)
-// Hapus logic 'fetch()' dan panggil 'initModalEvents()' secara langsung
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ DOM dimuat, menginisialisasi modal secara langsung...");
-  initModalEvents();
-});
-
-
-function initModalEvents() {
-  const modal = document.getElementById("commandModal");
-  const closeModalBtn = document.getElementById("closeModalBtn");
-  const openModalBtn = document.getElementById("openModalBtn");
-  const cmdInput = document.getElementById("cmdInput");
-  const output = document.getElementById("output");
-  const runBtn = document.getElementById("runBtn");
-  const modalPasteBtn = document.getElementById("modalPasteBtn");
-  const clearBtn = document.getElementById("clearBtn");
-  const copyBtn = document.getElementById("copyBtn");
-  const editBtn = document.getElementById("editFileBtn"); // Tambahan baru
-
-
-// === LOGIKA BARU: sembunyikan tombol modal jika BUKAN localhost ===
-const isLocal =
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1" ||
-  window.location.hostname === "::1";
-
-console.log("Hostname:", window.location.hostname);
-console.log("isLocal:", isLocal);
-console.log("openModalBtn display:", openModalBtn.style.display, "→ classes:", openModalBtn.classList);
-  
-if (openModalBtn) {
-  if (isLocal) {
-    openModalBtn.classList.remove("hidden");
-  } else {
-    openModalBtn.classList.add("hidden");
-  }
-}
-
-  
-  // Cek semua elemen penting
-  if (!modal || !openModalBtn || !cmdInput || !output || !runBtn || !modalPasteBtn || !clearBtn || !copyBtn) {
-    console.error("❌ Elemen modal atau tombol tidak ditemukan:", {
-      modal: !!modal,
-      openModalBtn: !!openModalBtn,
-      cmdInput: !!cmdInput,
-      output: !!output,
-      runBtn: !!runBtn,
-      modalPasteBtn: !!modalPasteBtn,
-      clearBtn: !!clearBtn,
-      copyBtn: !!copyBtn,
-      editBtn: !!editBtn
-    });
-    return;
-  }
-
-  // Log status tombol edit
-  if (!editBtn) {
-    console.warn("⚠️ Tombol Edit File (id='editFileBtn') tidak ditemukan di DOM saat initModalEvents dijalankan.");
-  } else {
-    console.log("✅ Tombol Edit File ditemukan, siap digunakan.");
-  }
-
-  // Tambahkan event untuk tombol Edit File
-  if (editBtn) {
-    editBtn.addEventListener("click", () => {
-      try {
-        if (!window.selectedFile) {
-          alert("⚠️ Pilih file dulu sebelum mengedit!");
-          console.warn("🟡 Tombol Edit diklik tanpa ada file terpilih.");
-          return;
+        async function pasteCommand(cmdInput) {
+            console.log("✅ Fungsi pasteCommand dipanggil");
+            try {
+                const permissionStatus = await navigator.permissions.query({
+                    name: "clipboard-read"
+                });
+                console.log("✅ Status izin clipboard:", permissionStatus.state);
+                if (permissionStatus.state === "granted" || permissionStatus.state === "prompt") {
+                    const text = await navigator.clipboard.readText();
+                    cmdInput.value = text.trim();
+                    cmdInput.focus();
+                    console.log("✅ Teks berhasil dipaste:", text);
+                    showFloatingMessage("✅ Teks berhasil dipaste!");
+                } else {
+                    console.warn("❌ Izin clipboard ditolak");
+                    showFloatingMessage(
+                        "❌ Izin untuk mengakses clipboard ditolak. Silakan paste secara manual.");
+                }
+            } catch (err) {
+                console.error("❌ Gagal menempelkan teks:", err);
+                showFloatingMessage(
+                    "❌ Gagal menempelkan teks. Pastikan situs berjalan di HTTPS atau localhost, atau paste secara manual."
+                );
+            }
         }
-
-        console.log("📝 Membuka editor untuk:", window.selectedFile);
-        showFloatingMessage("📝 Membuka editor untuk: " + window.selectedFile);
-        // TODO: buka modal editor di sini nanti
-      } catch (err) {
-        console.error("❌ Terjadi error saat menekan Edit File:", err);
-        alert("Terjadi kesalahan saat membuka editor. Periksa konsol untuk detail.");
-      }
-    });
-  }
-
-  // Log sukses inisialisasi modal
-  console.log("✅ initModalEvents() berhasil dijalankan dan semua listener aktif.");
-
-  console.log("✅ Semua elemen modal ditemukan, mengikat event...");
-
-  openModalBtn.onclick = () => {
-    modal.style.display = "flex";
-    console.log("✅ Modal dibuka");
-  };
-  closeModalBtn.onclick = () => {
-    modal.style.display = "none";
-    console.log("✅ Modal ditutup");
-  };
-  window.onclick = (e) => {
-    if (e.target === modal) {
-      modal.style.display = "none";
-      console.log("✅ Modal ditutup via klik luar");
-    }
-  };
-
-  runBtn.onclick = () => runCommand(cmdInput, output);
-  modalPasteBtn.onclick = () => {
-    console.log("✅ Tombol Paste di modal diklik");
-    pasteCommand(cmdInput);
-  };
-  clearBtn.onclick = () => clearCommand(cmdInput, output);
-  copyBtn.onclick = () => copyOutput(output);
-}
-
-async function pasteCommand(cmdInput) {
-  console.log("✅ Fungsi pasteCommand dipanggil");
-  try {
-    const permissionStatus = await navigator.permissions.query({ name: "clipboard-read" });
-    console.log("✅ Status izin clipboard:", permissionStatus.state);
-    if (permissionStatus.state === "granted" || permissionStatus.state === "prompt") {
-      const text = await navigator.clipboard.readText();
-      cmdInput.value = text.trim();
-      cmdInput.focus();
-      console.log("✅ Teks berhasil dipaste:", text);
-      showFloatingMessage("✅ Teks berhasil dipaste!");
-    } else {
-      console.warn("❌ Izin clipboard ditolak");
-      showFloatingMessage("❌ Izin untuk mengakses clipboard ditolak. Silakan paste secara manual.");
-    }
-  } catch (err) {
-    console.error("❌ Gagal menempelkan teks:", err);
-    showFloatingMessage("❌ Gagal menempelkan teks. Pastikan situs berjalan di HTTPS atau localhost, atau paste secara manual.");
-  }
-}
-
-let selectedFile = null; // file aktif saat ini
-
-document.addEventListener("DOMContentLoaded", () => {
-  try {
-    console.log("✅ DOMContentLoaded dipicu, mencari tombol edit...");
-
-    const editBtn = document.getElementById("editFileBtn");
-    if (!editBtn) {
-      console.error("❌ Tombol edit (id='editFileBtn') tidak ditemukan di halaman!");
-      return;
-    }
-
-    console.log("✅ Tombol edit ditemukan, menambahkan event listener...");
-    editBtn.addEventListener("click", () => {
-      try {
-        console.log("🟢 Tombol edit diklik");
-
-        if (typeof selectedFile === "undefined") {
-          console.error("❌ Variabel 'selectedFile' belum didefinisikan di mana pun!");
-          alert("❌ Error: Variabel 'selectedFile' belum didefinisikan!");
-          return;
-        }
-
-        if (!selectedFile) {
-          console.warn("⚠️ Tidak ada file yang dipilih!");
-          alert("⚠️ Pilih file dulu sebelum mengedit!");
-          return;
-        }
-
-        console.log("📂 File terpilih untuk diedit:", selectedFile);
-        showFloatingMessage("📝 Membuka editor untuk: " + selectedFile);
-
-      } catch (err) {
-        console.error("💥 Terjadi error di dalam event click editBtn:", err);
-        alert("💥 Terjadi error saat menjalankan fungsi edit!\n" + err.message);
-      }
-    });
-
-  } catch (err) {
-    console.error("💥 Terjadi error saat inisialisasi tombol edit:", err);
-    alert("💥 Error inisialisasi tombol edit!\n" + err.message);
-  }
-});
-
-async function runCommand(cmdInput, output) {
-  const cmd = cmdInput.value.trim();
-  if (!cmd) {
-    output.textContent = "⚠️ Masukkan perintah terlebih dahulu.";
-    return;
-  }
-
-  output.textContent = "⏳ Menjalankan perintah...";
-
-  try {
-    const res = await fetch("/api/command", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cmd })
-    });
-
-    const data = await res.json();
-
-    if (!data.success) {
-      output.textContent = "❌ Error: " + (data.error || "Terjadi kesalahan.");
-      return;
-    }
-
-    const lines = (data.output || "").trim().split("\n");
-
-    // Jika hasil berupa daftar file (misal hasil "ls")
-    if (lines.length > 1) {
-      const ul = document.createElement("ul");
-      ul.style.listStyle = "none";
-      ul.style.padding = "0";
-      ul.style.margin = "0";
-
-      lines.forEach((line) => {
-        const li = document.createElement("li");
-        li.textContent = line;
-        li.style.padding = "5px 10px";
-        li.style.cursor = "pointer";
-        li.style.borderBottom = "1px solid #333";
-
-        li.addEventListener("mouseover", () => (li.style.background = "#222"));
-        li.addEventListener("mouseout", () => {
-          if (!li.classList.contains("active")) li.style.background = "";
+        let selectedFile = null; // file aktif saat ini
+        document.addEventListener("DOMContentLoaded", () => {
+            try {
+                console.log("✅ DOMContentLoaded dipicu, mencari tombol edit...");
+                const editBtn = document.getElementById("editFileBtn");
+                if (!editBtn) {
+                    console.error("❌ Tombol edit (id='editFileBtn') tidak ditemukan di halaman!");
+                    return;
+                }
+                console.log("✅ Tombol edit ditemukan, menambahkan event listener...");
+                editBtn.addEventListener("click", () => {
+                    try {
+                        console.log("🟢 Tombol edit diklik");
+                        if (typeof selectedFile === "undefined") {
+                            console.error("❌ Variabel 'selectedFile' belum didefinisikan di mana pun!");
+                            alert("❌ Error: Variabel 'selectedFile' belum didefinisikan!");
+                            return;
+                        }
+                        if (!selectedFile) {
+                            console.warn("⚠️ Tidak ada file yang dipilih!");
+                            alert("⚠️ Pilih file dulu sebelum mengedit!");
+                            return;
+                        }
+                        console.log("📂 File terpilih untuk diedit:", selectedFile);
+                        showFloatingMessage("📝 Membuka editor untuk: " + selectedFile);
+                    } catch (err) {
+                        console.error("💥 Terjadi error di dalam event click editBtn:", err);
+                        alert("💥 Terjadi error saat menjalankan fungsi edit!\n" + err.message);
+                    }
+                });
+            } catch (err) {
+                console.error("💥 Terjadi error saat inisialisasi tombol edit:", err);
+                alert("💥 Error inisialisasi tombol edit!\n" + err.message);
+            }
         });
+        async function runCommand(cmdInput, output) {
+            const cmd = cmdInput.value.trim();
+            if (!cmd) {
+                output.textContent = "⚠️ Masukkan perintah terlebih dahulu.";
+                return;
+            }
+            output.textContent = "⏳ Menjalankan perintah...";
+            try {
+                const res = await fetch("/api/command", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        cmd
+                    })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    output.textContent = "❌ Error: " + (data.error || "Terjadi kesalahan.");
+                    return;
+                }
+                const lines = (data.output || "").trim().split("\n");
+                // Jika hasil berupa daftar file (misal hasil "ls")
+                if (lines.length > 1) {
+                    const ul = document.createElement("ul");
+                    ul.style.listStyle = "none";
+                    ul.style.padding = "0";
+                    ul.style.margin = "0";
+                    lines.forEach((line) => {
+                        const li = document.createElement("li");
+                        li.textContent = line;
+                        li.style.padding = "5px 10px";
+                        li.style.cursor = "pointer";
+                        li.style.borderBottom = "1px solid #333";
+                        li.addEventListener("mouseover", () => (li.style.background = "#222"));
+                        li.addEventListener("mouseout", () => {
+                            if (!li.classList.contains("active")) li.style.background = "";
+                        });
+                        // Klik file -> aktifkan & tampilkan tombol edit
+                        li.addEventListener("click", () => {
+                            ul.querySelectorAll("li").forEach((el) => {
+                                el.classList.remove("active");
+                                el.style.background = "";
+                                el.style.color = "#0f0";
+                            });
+                            li.classList.add("active");
+                            li.style.background = "#0f0";
+                            li.style.color = "#000";
+                            selectedFile = line; // simpan file aktif
+                            // Tampilkan tombol edit jika elemennya ada
+                            const editButton = document.getElementById("editFileBtn");
+                            if (editButton) {
+                                editButton.style.display = "inline-block";
+                            }
+                        });
+                        ul.appendChild(li);
+                    });
+                    output.innerHTML = "";
+                    output.appendChild(ul);
+                } else {
+                    output.textContent = data.output || "✅ Selesai tanpa output.";
+                }
+                output.scrollTop = output.scrollHeight;
+            } catch (err) {
+                output.textContent = "🚫 Tidak dapat terhubung ke server.";
+            }
+        }
 
-        // Klik file -> aktifkan & tampilkan tombol edit
-        li.addEventListener("click", () => {
-          ul.querySelectorAll("li").forEach((el) => {
-            el.classList.remove("active");
-            el.style.background = "";
-            el.style.color = "#0f0";
-          });
+        function clearCommand(cmdInput, output) {
+            cmdInput.value = "";
+            output.textContent = "Menunggu perintah...";
+            // Sembunyikan tombol edit saat output dibersihkan
+            const editButton = document.getElementById("editFileBtn");
+            if (editButton) {
+                editButton.style.display = "none";
+            }
+            selectedFile = null;
+        }
 
-          li.classList.add("active");
-          li.style.background = "#0f0";
-          li.style.color = "#000";
-          selectedFile = line; // simpan file aktif
-          
-          // Tampilkan tombol edit jika elemennya ada
-          const editButton = document.getElementById("editFileBtn");
-          if(editButton) {
-            editButton.style.display = "inline-block";
-          }
-        });
-
-        ul.appendChild(li);
-      });
-
-      output.innerHTML = "";
-      output.appendChild(ul);
-    } else {
-      output.textContent = data.output || "✅ Selesai tanpa output.";
-    }
-
-    output.scrollTop = output.scrollHeight;
-  } catch (err) {
-    output.textContent = "🚫 Tidak dapat terhubung ke server.";
-  }
-}
-
-function clearCommand(cmdInput, output) {
-  cmdInput.value = "";
-  output.textContent = "Menunggu perintah...";
-  
-  // Sembunyikan tombol edit saat output dibersihkan
-  const editButton = document.getElementById("editFileBtn");
-  if(editButton) {
-    editButton.style.display = "none";
-  }
-  selectedFile = null;
-}
-
-function copyOutput(output) {
-  const text = output.textContent;
-  navigator.clipboard.writeText(text)
-    .then(() => showFloatingMessage("✅ Output berhasil disalin!"))
-    .catch(() => showFloatingMessage("❌ Gagal menyalin output."));
-}
-</script>
+        function copyOutput(output) {
+            const text = output.textContent;
+            navigator.clipboard.writeText(text)
+                .then(() => showFloatingMessage("✅ Output berhasil disalin!"))
+                .catch(() => showFloatingMessage("❌ Gagal menyalin output."));
+        }
+    </script>
 </body>
 </html>
