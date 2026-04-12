@@ -1,19 +1,10 @@
 {
-  "name": "node_projects",
+  "name": "nodesaver",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "type": "module",
   "dependencies": {
-    "express": "^5.1.0",
-    "snapsave-media-downloader": "^2.2.1",
-    "mongodb": "^6.6.2"
+    "express": "^4.18.2",
+    "snapsave-media-downloader": "latest",
+    "form-data": "^4.0.0"
   }
 }
