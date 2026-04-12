@@ -9,60 +9,56 @@ import os from "os";
  * [TAMBAHAN] Fungsi untuk mengambil nama profil Facebook via Scraping Meta Tag
  */
 async function getProfileName(url) {
-  console.log("🔍 [FB-DEBUG] Memulai fetch ke:", url);
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // Naikkan ke 5 detik untuk debug
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
 
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        // Coba gunakan User-Agent bot agar dianggap sebagai crawler
-        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
-        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
+        'User-Agent': 'facebookexternalhit/1.1'
       }
     });
     
-    console.log("🔍 [FB-DEBUG] HTTP Status:", response.status, response.statusText);
-    
-    // Cek apakah di-redirect ke halaman login
-    if (response.url.includes('login.php') || response.url.includes('checkpoint')) {
-      console.log("⚠️ [FB-DEBUG] Terdeteksi REDIRECT ke halaman login/checkpoint!");
-      return "Facebook User (Protected)";
-    }
-
     const html = await response.text();
     clearTimeout(timeoutId);
 
-    // Log 500 karakter pertama HTML untuk melihat apakah isinya benar atau cuma script kosong
-    console.log("🔍 [FB-DEBUG] Cuplikan HTML (500 char):", html.substring(0, 500).replace(/\n/g, ' '));
-
-    // Regex yang lebih fleksibel (mendukung kutipan tunggal atau ganda)
-    const match = html.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i);
+    const match = html.match(/<meta property="og:title" content="(.*?)"/);
     
     if (match && match[1]) {
-      console.log("✅ [FB-DEBUG] Match found:", match[1]);
-      const cleanName = match[1].split(' - ')[0].split(' | ')[0].split(' was ')[0].trim();
-      return cleanName;
-    } else {
-      console.log("❌ [FB-DEBUG] Meta og:title TIDAK ditemukan di HTML.");
-      
-      // Coba cari alternatif: tag <title>
-      const titleTag = html.match(/<title>(.*?)<\/title>/i);
-      if (titleTag && titleTag[1]) {
-        console.log("🔍 [FB-DEBUG] Alternatif ditemukan di tag <title>:", titleTag[1]);
-        return titleTag[1].split(' | ')[0].trim();
+      const fullTitle = match[1];
+      console.log("🔍 [FB-DEBUG] Raw OG Title:", fullTitle);
+
+      // 1. Pecah berdasarkan karakter pipa "|"
+      const parts = fullTitle.split('|');
+
+      if (parts.length > 0) {
+        // 2. Ambil bagian paling terakhir (biasanya Nama Profil di FB Reels/Video)
+        let lastPart = parts[parts.length - 1].trim();
+
+        // 3. Bersihkan entitas HTML jika masih ada (seperti &#xa0; atau &amp;)
+        // Kita gunakan regex sederhana untuk membersihkan kode-kode unik tersebut
+        let cleanName = lastPart
+          .replace(/&#\w+;/g, ' ') // Hilangkan entitas seperti &#xa0;
+          .replace(/\s+/g, ' ')    // Rapikan spasi ganda
+          .split(' - ')[0]         // Jaga-jaga jika ada " - Reels"
+          .trim();
+
+        // 4. Validasi: Jika hasil "cleanName" malah berisi statistik, ambil bagian sebelumnya
+        if (/tayangan|tanggapan|views|reactions/i.test(cleanName) && parts.length > 1) {
+             cleanName = parts[parts.length - 2].trim();
+        }
+
+        console.log("✅ [FB-DEBUG] Nama Berhasil Diambil:", cleanName);
+        return cleanName;
       }
     }
   } catch (e) {
-    if (e.name === 'AbortError') {
-      console.error("❌ [FB-DEBUG] Error: Request Timeout (FB terlalu lama merespon)");
-    } else {
-      console.error("❌ [FB-DEBUG] Error Detail:", e.message);
-    }
+    console.error("⚠️ Gagal ambil nama profil:", e.message);
   }
-  return "Facebook User"; 
+  return "Facebook User";
 }
+
 
 /**
  * Fungsi untuk mengunggah ke Videy dengan cara mengunduh ke lokal sementara
