@@ -6,58 +6,57 @@ import path from "path";
 import os from "os";
 
 /**
- * [SISTEM DETEKTIF TIKTOK]
- * Mengambil nama profil/judul dari meta TikTok
+ * [SISTEM DETEKTIF X/TWITTER]
+ * Menggunakan OEmbed resmi Twitter (Gratis & Tanpa API Key)
  */
+async function getXMetadata(url) {
+  console.log("🔍 [X-DEBUG] Mengambil metadata X...");
+  try {
+    const res = await fetch(`https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+    if (data && data.author_name) {
+      console.log("✅ [X-DEBUG] Berhasil:", data.author_name);
+      return data.author_name; 
+    }
+  } catch (e) {
+    console.error("⚠️ [X-DEBUG] Gagal:", e.message);
+  }
+  return null;
+}
+
 /**
- * [FIXED] FUNGSI METADATA TIKTOK MENGGUNAKAN API PIHAK KETIGA
- * Karena Scraping langsung dari Vercel kena blokir (403 Forbidden)
+ * [SISTEM DETEKTIF TIKTOK]
+ * Menggunakan TikWM API (Menghindari 403 Forbidden di Vercel)
  */
 async function getTikTokMetadata(url) {
   console.log("--------------------------------------------------");
   console.log("🔍 [TT-DEBUG] Mengambil Metadata via TikWM API...");
-  
   try {
-    // Kita gunakan API TikWM (Gratis untuk metadata dasar)
     const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`;
-    
     const response = await fetch(apiUrl, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0'
-      }
+      headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
     });
-
     const result = await response.json();
 
-    // Cek apakah API memberikan data yang valid
-    if (result && result.code === 0 && result.data) {
+    if (result?.data) {
       const author = result.data.author.nickname || result.data.author.unique_id;
-      const title = result.data.title || "";
-      
-      console.log("✅ [TT-DEBUG] Berhasil Mendapatkan Nama:", author);
-      
-      // Kembalikan format: Nama Profil (@username)
+      console.log("✅ [TT-DEBUG] Berhasil:", author);
       return `${author} (@${result.data.author.unique_id})`;
-    } else {
-      console.log("❌ [TT-DEBUG] API tidak memberikan data profil.");
     }
   } catch (e) {
     console.error("❌ [TT-DEBUG] Error API TikTok:", e.message);
   }
-
-  return null; // Jika gagal, sistem akan pakai nama cadangan (fallback)
+  return null;
 }
 
-
-
 /**
- * [SISTEM DETEKTIF FACEBOOK]
- * Mengambil nama profil dari og:title, og:description, dan twitter:title
+ * [SISTEM DETEKTIF FACEBOOK & INSTAGRAM]
+ * Mengambil nama profil dari Meta Tags (og:title, og:description)
  */
 async function getProfileName(url) {
   console.log("--------------------------------------------------");
-  console.log("🔍 [FB-DEBUG] Investigasi URL:", url);
+  const platform = url.includes('instagram.com') ? 'IG' : 'FB';
+  console.log(`🔍 [${platform}-DEBUG] Investigasi URL:`, url);
   
   try {
     const controller = new AbortController();
@@ -72,7 +71,7 @@ async function getProfileName(url) {
     });
     
     if (response.url.includes('login.php') || response.url.includes('checkpoint')) {
-      console.log("⚠️ [FB-DEBUG] GAGAL: Terdeteksi blokir/Redirect ke Login");
+      console.log(`⚠️ [${platform}-DEBUG] GAGAL: Terdeteksi blokir/Redirect ke Login`);
       return null;
     }
 
@@ -94,24 +93,24 @@ async function getProfileName(url) {
 
     const candidates = parts.filter(p => {
       const isStats = /tayangan|tanggapan|views|reactions|\d+\s?rb|\d+\s?jt|\d+\s?K|\d+\s?M/i.test(p);
-      const isGeneric = /facebook|video|reels|watch|shared/i.test(p);
+      const isGeneric = /facebook|instagram|video|reels|watch|shared|post|photo/i.test(p);
       const isShort = p.length < 3;
       return !isStats && !isGeneric && !isShort;
     });
 
     if (candidates.length > 0) {
       const result = candidates[candidates.length - 1];
-      console.log("✅ [FB-DEBUG] BERHASIL AMBIL NAMA:", result);
+      console.log(`✅ [${platform}-DEBUG] BERHASIL AMBIL NAMA:`, result);
       return result;
     }
   } catch (e) {
-    console.error("❌ [FB-DEBUG] ERROR:", e.message);
+    console.error(`❌ [${platform}-DEBUG] ERROR:`, e.message);
   }
   return null; 
 }
 
 /**
- * Fungsi untuk mengunggah ke Videy dengan cara mengunduh ke lokal sementara
+ * Fungsi untuk mengunggah ke Videy melalui file lokal sementara
  */
 async function uploadToVidey(remoteUrl) {
   const tempFilePath = path.join(os.tmpdir(), `video_${Date.now()}.mp4`);
@@ -146,14 +145,24 @@ export default async function handler(req, res) {
     const { url } = req.body;
     if (!url) return res.status(400).json({ success: false, error: "URL kosong" });
 
-    // Step 1: Deteksi Platform & Ekstraksi Paralel
-    console.log("📥 [1] Memulai ekstraksi paralel...");
+    // Step 1: Deteksi Platform
     const isFB = url.includes('facebook.com') || url.includes('fb.com');
     const isTT = url.includes('tiktok.com');
+    const isX = url.includes('twitter.com') || url.includes('x.com');
+    const isIG = url.includes('instagram.com');
+
+    console.log("📥 [1] Memulai ekstraksi paralel...");
+    
+    // Pilih fungsi metadata sesuai platform
+    let metadataPromise;
+    if (isFB || isIG) metadataPromise = getProfileName(url);
+    else if (isTT) metadataPromise = getTikTokMetadata(url);
+    else if (isX) metadataPromise = getXMetadata(url);
+    else metadataPromise = Promise.resolve(null);
 
     const [snapResult, profileName] = await Promise.all([
         snapsave(url),
-        isFB ? getProfileName(url) : (isTT ? getTikTokMetadata(url) : Promise.resolve(null))
+        metadataPromise
     ]);
 
     if (!snapResult?.success) {
@@ -169,15 +178,16 @@ export default async function handler(req, res) {
     const videyLink = await uploadToVidey(rawUrl);
     if (!videyLink) return res.status(500).json({ success: false, error: "Gagal upload ke Videy" });
 
-    // Step 3: Penentuan Judul & Fallback (Dinamis sesuai platform)
+    // Step 3: Penentuan Judul & Fallback Label
     let platformLabel = "Media";
     if (isFB) platformLabel = "FB Video";
     else if (isTT) platformLabel = "TikTok";
+    else if (isX) platformLabel = "X Video";
+    else if (isIG) platformLabel = "Instagram";
 
     let finalTitle = profileName;
 
     if (!finalTitle) {
-      // Jika scraping gagal, ambil ID dari URL agar tetap unik
       const urlParts = url.split('?')[0].split('/');
       const lastId = urlParts.filter(p => p.length > 4).pop() || "Content";
       finalTitle = `${platformLabel} ${lastId.substring(0, 8)}`;
