@@ -6,26 +6,53 @@ import path from "path";
 import os from "os";
 
 /**
+ * [TAMBAHAN] Fungsi untuk mengambil nama profil Facebook via Scraping Meta Tag
+ */
+async function getProfileName(url) {
+  try {
+    // Timeout 3 detik agar tidak membuat proses utama macet jika FB lambat
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
+      }
+    });
+    
+    const html = await response.text();
+    clearTimeout(timeoutId);
+
+    // Regex mencari og:title
+    const match = html.match(/<meta property="og:title" content="(.*?)"/);
+    
+    if (match && match[1]) {
+      // Bersihkan teks tambahan seperti " - Reels", " | Facebook", dll.
+      return match[1].split(' - ')[0].split(' | ')[0].split(' was ')[0].trim();
+    }
+  } catch (e) {
+    console.error("⚠️ Gagal ambil nama profil:", e.message);
+  }
+  return null; // Kembalikan null jika gagal agar bisa pakai fallback
+}
+
+/**
  * Fungsi untuk mengunggah ke Videy dengan cara mengunduh ke lokal sementara
  */
 async function uploadToVidey(remoteUrl) {
-  // Membuat path file sementara di folder /tmp (standar untuk serverless/Vercel)
   const tempFilePath = path.join(os.tmpdir(), `video_${Date.now()}.mp4`);
 
   try {
     console.log("⏳ [Step 10.1] Mengunduh video ke penyimpanan sementara...");
-    
-    // 1. Download file dari remote URL ke local temp file
     const response = await fetch(remoteUrl);
-    if (!response.ok) throw new Error(`Gagal mengunduh video dari source: ${response.statusText}`);
+    if (!response.ok) throw new Error(`Gagal mengunduh video: ${response.statusText}`);
     
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     fs.writeFileSync(tempFilePath, buffer);
 
     console.log("⏳ [Step 10.2] Mengunggah file lokal ke Videy...");
-
-    // 2. Jalankan curl menggunakan path file LOKAL (@tempFilePath)
     const cmd = `
     curl -X POST https://videy.co/api/upload \
     -H "Origin: https://videy.co" \
@@ -37,14 +64,11 @@ async function uploadToVidey(remoteUrl) {
     const result = execSync(cmd).toString();
     const json = JSON.parse(result);
 
-    // 3. Hapus file sementara agar tidak memenuhi disk
     if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
-
     return json?.id ? `https://videy.co/v/?id=${json.id}` : null;
 
   } catch (error) {
     console.error("❌ Error di uploadToVidey:", error.message);
-    // Pastikan file temp dihapus jika terjadi error
     if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
     return null;
   }
@@ -62,56 +86,51 @@ export default async function handler(req, res) {
 
   try {
     const { url } = req.body;
-    
-    if (!url) {
-      return res.status(400).json({ success: false, error: "URL kosong" });
-    }
+    if (!url) return res.status(400).json({ success: false, error: "URL kosong" });
 
-    // Step 1: Panggil snapsave
-    console.log("📥 [3] Calling snapsave...");
-    const result = await snapsave(url);
-    
-    if (!result?.success) {
+    // --- PERUBAHAN UTAMA DISINI ---
+    // Menjalankan SnapSave dan Ambil Nama Profil secara bersamaan
+    console.log("📥 [3] Memulai ekstraksi paralel...");
+    const isFB = url.includes('facebook.com') || url.includes('fb.com');
+
+    const [snapResult, profileName] = await Promise.all([
+        snapsave(url),
+        isFB ? getProfileName(url) : Promise.resolve(null)
+    ]);
+    // ------------------------------
+
+    if (!snapResult?.success) {
       return res.status(404).json({ 
         success: false, 
-        error: result?.error || "Media tidak ditemukan"
+        error: snapResult?.error || "Media tidak ditemukan"
       });
     }
 
-    const mediaArray = result.data?.media;
-    if (!Array.isArray(mediaArray) || mediaArray.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        error: "Media tidak ditemukan dalam response"
-      });
-    }
-
-    const firstMedia = mediaArray[0];
+    const firstMedia = snapResult.data?.media?.[0];
     const rawUrl = firstMedia?.url;
     
     if (!rawUrl) {
       return res.status(500).json({ success: false, error: "URL video tidak ditemukan" });
     }
     
-    // Step 4: Upload ke Videy (Sekarang menggunakan fungsi yang sudah diperbaiki)
     console.log("📤 [10] Processing Upload...");
     const videyLink = await uploadToVidey(rawUrl);
 
     if (!videyLink) {
-      return res.status(500).json({ 
-        success: false, 
-        error: "Gagal upload ke Videy (Cek log server)" 
-      });
+      return res.status(500).json({ success: false, error: "Gagal upload ke Videy" });
     }
 
+    // Mengirim respon dengan Judul yang diprioritaskan dari Nama Profil
     return res.status(200).json({
       success: true,
       data: {
-        title: result.data?.description || "Video Content",
+        // Fallback: Nama Profil > Deskripsi SnapSave > Default
+        title: profileName || snapResult.data?.description || "Facebook Video",
         videyUrl: videyLink,
         quality: firstMedia?.resolution || "unknown"
       }
     });
+
   } catch (err) {
     console.error("💥 Global error:", err.message);
     return res.status(500).json({ success: false, error: err.message });
