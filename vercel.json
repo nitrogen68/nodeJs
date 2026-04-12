@@ -1,9 +1,9 @@
 {
-  "framework": "express",
-  "routes": [
-    { "src": "/(.*\\.html)", "dest": "/$1" },
-    { "src": "/(.*\\.css)", "dest": "/$1" },
-    { "src": "/(.*\\.js)", "dest": "/$1" },
-    { "src": "/(.*)", "dest": "/server.js" }
+  "version": 2,
+  "rewrites": [
+    { "source": "/apiDl", "destination": "/server.js" },
+    { "source": "/api/download", "destination": "/server.js" },
+    { "source": "/proxy/get.php", "destination": "/server.js" },
+    { "source": "/(.*)", "destination": "/server.js" }
   ]
 }
