@@ -1,9 +1,7 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/apiDl", "destination": "/server.js" },
-    { "source": "/api/download", "destination": "/server.js" },
-    { "source": "/proxy/get.php", "destination": "/server.js" },
+    { "source": "/api/(.*)", "destination": "/server.js" },
     { "source": "/(.*)", "destination": "/server.js" }
   ]
 }
