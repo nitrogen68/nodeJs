@@ -9,63 +9,46 @@ import os from "os";
  * [SISTEM DETEKTIF TIKTOK]
  * Mengambil nama profil/judul dari meta TikTok
  */
+/**
+ * [FIXED] FUNGSI METADATA TIKTOK MENGGUNAKAN API PIHAK KETIGA
+ * Karena Scraping langsung dari Vercel kena blokir (403 Forbidden)
+ */
 async function getTikTokMetadata(url) {
   console.log("--------------------------------------------------");
-  console.log("🔍 [TT-DEBUG] Investigasi TikTok:", url);
+  console.log("🔍 [TT-DEBUG] Mengambil Metadata via TikWM API...");
+  
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    const response = await fetch(url, {
-      signal: controller.signal,
+    // Kita gunakan API TikWM (Gratis untuk metadata dasar)
+    const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`;
+    
+    const response = await fetch(apiUrl, {
       headers: {
-        // Menggunakan User-Agent Googlebot agar TikTok lebih "terbuka" memberikan metadata
-        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
-        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8'
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0'
       }
     });
 
-    console.log("🔍 [TT-DEBUG] Status:", response.status);
-    const html = await response.text();
-    clearTimeout(timeoutId);
+    const result = await response.json();
 
-    // TAMPILKAN LOG HTML (Gunakan ini untuk cek jika masih gagal)
-    console.log("🔍 [TT-DEBUG] Cuplikan HTML:", html.substring(0, 400).replace(/\n/g, ' '));
-
-    // 1. Cari di og:title
-    const ogTitle = html.match(/<meta property="og:title" content="(.*?)"/i);
-    // 2. Cari di og:description (TikTok sering taruh: "Video TikTok dari @user: ...")
-    const ogDesc = html.match(/<meta property="og:description" content="(.*?)"/i);
-    // 3. Cari pola @username secara manual di seluruh HTML
-    const userPattern = html.match(/@([a-zA-Z0-9._]{2,24})/);
-
-    let foundName = null;
-
-    if (ogTitle && ogTitle[1] && !ogTitle[1].includes('TikTok')) {
-        foundName = ogTitle[1];
-    } else if (userPattern) {
-        foundName = `@${userPattern[1]}`;
-    } else if (ogDesc && ogDesc[1]) {
-        // Ambil potongan depan deskripsi jika ada username
-        const desc = ogDesc[1];
-        const mention = desc.match(/@([a-zA-Z0-9._]+)/);
-        foundName = mention ? `@${mention[1]}` : desc.substring(0, 20);
+    // Cek apakah API memberikan data yang valid
+    if (result && result.code === 0 && result.data) {
+      const author = result.data.author.nickname || result.data.author.unique_id;
+      const title = result.data.title || "";
+      
+      console.log("✅ [TT-DEBUG] Berhasil Mendapatkan Nama:", author);
+      
+      // Kembalikan format: Nama Profil (@username)
+      return `${author} (@${result.data.author.unique_id})`;
+    } else {
+      console.log("❌ [TT-DEBUG] API tidak memberikan data profil.");
     }
-
-    if (foundName) {
-      // Bersihkan teks sampah
-      let final = foundName.replace(' | TikTok', '').replace('on TikTok', '').trim();
-      console.log("✅ [TT-DEBUG] BERHASIL:", final);
-      return final;
-    }
-
-    console.log("❌ [TT-DEBUG] Nama tidak ditemukan di meta tags.");
   } catch (e) {
-    console.error("⚠️ [TT-DEBUG] ERROR:", e.message);
+    console.error("❌ [TT-DEBUG] Error API TikTok:", e.message);
   }
-  return null;
+
+  return null; // Jika gagal, sistem akan pakai nama cadangan (fallback)
 }
+
 
 
 /**
