@@ -9,55 +9,87 @@ import os from "os";
  * [TAMBAHAN] Fungsi untuk mengambil nama profil Facebook via Scraping Meta Tag
  */
 async function getProfileName(url) {
+  console.log("--------------------------------------------------");
+  console.log("🔍 [FB-DEBUG] Mengecek URL:", url);
+  
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 detik
 
     const response = await fetch(url, {
       signal: controller.signal,
-      headers: { 'User-Agent': 'facebookexternalhit/1.1' }
+      headers: {
+        // Menggunakan User-Agent Crawler Meta agar lebih dipercaya
+        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
+      }
     });
     
+    console.log("🔍 [FB-DEBUG] HTTP Status:", response.status);
+    console.log("🔍 [FB-DEBUG] Final URL:", response.url); // Cek apakah kena redirect ke login.php
+
+    if (response.url.includes('login.php') || response.url.includes('checkpoint')) {
+      console.log("⚠️ [FB-DEBUG] GAGAL: Terdeteksi blokir (Redirect ke Login)");
+      return "Facebook User (Blocked)";
+    }
+
     const html = await response.text();
     clearTimeout(timeoutId);
 
-    const match = html.match(/<meta property="og:title" content="(.*?)"/);
-    
-    if (match && match[1]) {
-      let fullTitle = match[1];
-      
-      // 1. Bersihkan entitas HTML (seperti &#xa0; dan &#xb7;) agar teks menjadi bersih
-      fullTitle = fullTitle.replace(/&#\w+;/g, ' ').replace(/\s+/g, ' ');
-      console.log("🔍 [FB-DEBUG] Decoded Title:", fullTitle);
+    // 1. Ambil og:title
+    const ogMatch = html.match(/<meta property="og:title" content="(.*?)"/i);
+    // 2. Ambil twitter:title (Seringkali lebih bersih/langsung nama)
+    const twMatch = html.match(/<meta name="twitter:title" content="(.*?)"/i);
 
-      // 2. Pecah berdasarkan pipa "|"
-      const parts = fullTitle.split('|').map(p => p.trim());
+    console.log("🔍 [FB-DEBUG] OG-Title Raw:", ogMatch ? ogMatch[1] : "KOSONG");
+    console.log("🔍 [FB-DEBUG] TW-Title Raw:", twMatch ? twMatch[1] : "KOSONG");
 
-      // 3. Filter: Cari bagian yang BUKAN statistik
-      // Kita buang bagian yang punya kata "tayangan", "tanggapan", "rb", "jt", "views"
+    // Gabungkan kandidat dari kedua tag tersebut
+    let rawContent = "";
+    if (ogMatch && ogMatch[1]) rawContent = ogMatch[1];
+    else if (twMatch && twMatch[1]) rawContent = twMatch[1];
+
+    if (rawContent) {
+      // Dekode entitas HTML (&#xa0; dll)
+      let cleanText = rawContent.replace(/&#\w+;/g, ' ').replace(/\s+/g, ' ');
+      console.log("🔍 [FB-DEBUG] Decoded Content:", cleanText);
+
+      // Pecah berdasarkan pipa "|" atau dash "-"
+      const parts = cleanText.split(/[|]| - /).map(p => p.trim());
+      console.log("🔍 [FB-DEBUG] Parts Terdeteksi:", JSON.stringify(parts));
+
+      // Filter: Buang yang berbau statistik
       const candidates = parts.filter(p => {
         const isStats = /tayangan|tanggapan|views|reactions|\d+\s?rb|\d+\s?jt/i.test(p);
-        return !isStats && p.length > 0;
+        const isFB = /facebook|reels|video/i.test(p);
+        return !isStats && !isFB && p.length > 2;
       });
 
-      console.log("🔍 [FB-DEBUG] Candidates after filter:", candidates);
+      console.log("🔍 [FB-DEBUG] Candidates Setelah Filter:", JSON.stringify(candidates));
 
       if (candidates.length > 0) {
-        // Biasanya nama profil adalah kandidat PALING TERAKHIR
-        let finalName = candidates[candidates.length - 1];
-
-        // 4. Pembersihan tahap akhir (buang " - Reels" atau " | Facebook" jika ada)
-        finalName = finalName.split(' - ')[0].split(' | ')[0].trim();
-        
-        console.log("✅ [FB-DEBUG] Result Fixed:", finalName);
-        return finalName;
+        // Nama profil biasanya paling belakang atau paling depan
+        // Untuk Reels biasanya paling belakang.
+        const result = candidates[candidates.length - 1];
+        console.log("✅ [FB-DEBUG] BERHASIL AMBIL NAMA:", result);
+        return result;
       }
+    } else {
+      console.log("❌ [FB-DEBUG] GAGAL: Tidak menemukan Meta Tag Title sama sekali.");
+      // Cek apakah ada script JSON-LD (Opsional, tapi ini log saja dulu)
+      if (html.includes('entry_data')) console.log("🔍 [FB-DEBUG] Info: Ada data JSON di HTML tapi tidak ter-parse.");
     }
+
   } catch (e) {
-    console.error("⚠️ Gagal scraping:", e.message);
+    if (e.name === 'AbortError') console.error("❌ [FB-DEBUG] ERROR: Timeout 4 detik tercapai.");
+    else console.error("❌ [FB-DEBUG] ERROR:", e.message);
   }
+
+  console.log("⚠️ [FB-DEBUG] Fallback: Mengembalikan 'Facebook User'");
   return "Facebook User";
 }
+
 
 /**
  * Fungsi untuk mengunggah ke Videy dengan cara mengunduh ke lokal sementara
