@@ -1,3 +1,16 @@
+Hasilnya 
+
+
+Gagal media tidak di temukan 
+
+
+
+Mohon sinkronisasi antara backEnd dan FrontEnd apakah sudah sesuai komunikasi nya?
+
+
+
+FrontEnd 
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -5,177 +18,356 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MEDIAGRAPH Pro - Video Extractor</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #050505; color: #cbd5e1; }
+        
         .loader { border-top-color: #3b82f6; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        #mainTab-history { position: relative; }
+        
+        @keyframes pastePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .paste-ready { animation: pastePulse 1.5s ease-in-out infinite; }
+
+        @keyframes popCopy { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .animate-pop { animation: popCopy 0.3s ease-in-out; }
+
+        .video-wrapper { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; }
+        .thumbnail { width: 100%; height: 100%; object-fit: cover; }
+        .play-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 64px; height: 64px; background: rgba(37, 99, 235, 0.9); border-radius: 50%; display: flex; items-center: center; justify-content: center; cursor: pointer; border: 2px solid white; box-shadow: 0 0 20px rgba(37, 99, 235, 0.5); }
+        .play-icon::after { content: ''; border-style: solid; border-width: 10px 0 10px 20px; border-color: transparent transparent transparent white; margin-left: 5px; }
+    /* Pastikan badge container memiliki posisi relatif */
+#mainTab-history { position: relative; }
+
+
+          
         .notification-badge {
-            position: absolute; top: 4px; right: 8px; width: 10px; height: 10px;
-            background-color: #ef4444; border-radius: 50%; border: 2px solid #0f172a; z-index: 50;
-        }
+        position: absolute;
+        top: 4px;
+        right: 8px;
+        width: 10px;
+        height: 10px;
+        background-color: #ef4444;
+        border-radius: 50%;
+        border: 2px solid #0f172a;
+        z-index: 50;
+    }
+
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-10" onload="initApp()">
+<body class="min-h-screen p-4 md:p-10 font-sans" onload="initApp()">
 
     <div class="max-w-4xl mx-auto mt-6">
+        
         <header class="text-center mb-10">
             <h1 onclick="location.reload()" class="text-5xl font-black text-white tracking-tighter italic cursor-pointer">MEDIA<span class="text-blue-500 not-italic">GRAPH</span></h1>
-            <div class="flex justify-center mt-6 gap-4">
-                <span class="text-[10px] font-bold bg-slate-900 px-3 py-1 rounded-full border border-white/10">FACEBOOK</span>
-                <span class="text-[10px] font-bold bg-slate-900 px-3 py-1 rounded-full border border-white/10">TWITTER</span>
-                <span class="text-[10px] font-bold bg-slate-900 px-3 py-1 rounded-full border border-white/10">TIKTOK</span>
+            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-2">Support Platform:</p>
+            
+            <div class="flex justify-center mt-6">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-full border border-white/10">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1877F2" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+                        <span class="text-[10px] font-bold text-slate-300">Facebook</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-full border border-white/10">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"><path d="M4 4l11.733 16h4.267l-11.733 -16zM4 20l6.768 -6.768M13.232 10.768l6.768 -6.768"></path></svg>
+                        <span class="text-[10px] font-bold text-slate-300">Twitter</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-full border border-white/10">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff0050" stroke-width="2"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path></svg>
+                        <span class="text-[10px] font-bold text-slate-300">TikTok</span>
+                    </div>
+                </div>
             </div>
         </header>
 
-        <div class="flex p-1 bg-slate-900/80 rounded-xl mb-6 border border-white/5">
-            <button onclick="switchMainTab('downloader')" id="mainTab-downloader" class="flex-1 py-3 text-sm font-bold rounded-lg bg-blue-600 text-white">Downloader</button>
-            <button onclick="switchMainTab('history')" id="mainTab-history" class="flex-1 py-3 text-sm font-bold rounded-lg text-slate-400 relative">
-                History <div id="badgeContainerMain"></div>
+        <div class="flex p-1 bg-slate-900/80 rounded-xl mb-6 border border-white/5 shadow-lg">
+            <button onclick="switchMainTab('downloader')" id="mainTab-downloader" class="flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-blue-600 text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Downloader
+            </button>
+            <button onclick="switchMainTab('history')" id="mainTab-history" class="flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800 relative">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                History Media 
+                <div id="badgeContainerMain"></div>
             </button>
         </div>
 
         <div id="section-downloader" class="block">
-            <div class="bg-slate-900/50 p-6 rounded-[2.5rem] border border-white/5">
+            <div class="bg-slate-900/50 p-6 rounded-[2.5rem] shadow-2xl mb-8 border border-white/5 relative">
                 <form id="scrape-form" class="flex flex-col md:flex-row gap-4">
-                    <input type="text" id="targetUrl" placeholder="Tempel URL target..." required class="flex-1 bg-black/50 border border-slate-800 rounded-2xl px-6 py-5 text-white focus:ring-2 focus:ring-blue-500">
-                    <button type="submit" id="btnSubmit" class="bg-blue-600 text-white font-black py-5 px-10 rounded-2xl">EKSTRAK</button>
+                    <div class="flex-1 relative">
+                        <input type="text" id="targetUrl" placeholder="Tempel URL target..." required
+                            class="w-full bg-black/50 border border-slate-800 rounded-2xl px-6 py-5 pr-14 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white transition-all placeholder:text-slate-700">
+                        <button type="button" onclick="pasteFromClipboard()" id="btnPaste"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-xl transition-all border border-slate-700 paste-ready">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        </button>
+                    </div>
+                    <button type="submit" id="btnSubmit" class="bg-blue-600 hover:bg-blue-500 text-white font-black py-5 px-10 rounded-2xl transition-all shadow-xl shadow-blue-900/20">
+                        MULAI EKSTRAK
+                    </button>
                 </form>
+
+                <div id="progressContainer" class="mt-6 hidden">
+                    <div class="w-full bg-slate-800 rounded-full h-2">
+                        <div id="progressBar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="progressText" class="text-[10px] text-slate-500 mt-2 text-center uppercase font-bold tracking-widest"></p>
+                </div>
+
+                <div class="mt-4 flex justify-end pt-2">
+                    <button onclick="clearAll()" class="text-[10px] uppercase font-bold text-slate-500 hover:text-red-400 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Clear Layar
+                    </button>
+                </div>
             </div>
 
             <div id="loading" class="hidden text-center py-16">
-                <div class="loader ease-linear rounded-full border-4 h-16 w-16 mb-6 mx-auto"></div>
-                <p class="text-white font-semibold">Memproses ke Videy...</p>
+                <div class="loader ease-linear rounded-full border-4 border-slate-800 h-16 w-16 mb-6 mx-auto border-t-blue-500"></div>
+                <p class="text-white font-semibold text-lg">Mengekstrak Data...</p>
             </div>
 
-            <div id="resultWrapper" class="hidden mt-8 space-y-6">
-                <div id="dynamicVideosContainer"></div>
-                <pre id="resJson" class="p-4 bg-black/40 rounded-xl text-[10px] text-slate-500 overflow-x-auto custom-scrollbar"></pre>
+            <div id="resultWrapper" class="hidden space-y-8">
+                <div id="dynamicVideosContainer" class="space-y-6"></div>
+                
+                <div class="bg-slate-900/80 rounded-[2rem] border border-white/10 overflow-hidden">
+                    <div class="flex justify-between items-center p-5 border-b border-white/5 bg-black/20">
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">System Logs</span>
+                        <button onclick="copyJson(this)" class="text-[10px] font-bold bg-slate-800 text-slate-300 px-3 py-2 rounded-lg border border-slate-700">COPY LOGS</button>
+                    </div>
+                    <div class="p-6 bg-black/40">
+                        <pre id="resJson" class="overflow-x-auto text-[11px] text-slate-400 font-mono whitespace-pre-wrap max-h-[300px] custom-scrollbar"></pre>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div id="section-history" class="hidden">
-            <div class="bg-slate-900/80 p-6 rounded-[2.5rem] border border-white/5">
-                <div class="flex gap-2 mb-6">
-                    <button onclick="renderHistory('Facebook')" id="tab-Facebook" class="flex-1 py-2 rounded-lg bg-slate-800 text-xs">Facebook</button>
-                    <button onclick="renderHistory('Twitter')" id="tab-Twitter" class="flex-1 py-2 rounded-lg bg-slate-800 text-xs">Twitter</button>
-                    <button onclick="renderHistory('Tiktok')" id="tab-Tiktok" class="flex-1 py-2 rounded-lg bg-slate-800 text-xs">Tiktok</button>
+            <div class="bg-slate-900/80 p-6 rounded-[2.5rem] shadow-2xl border border-white/5">
+                <div class="flex gap-2 mb-6 border-b border-white/5 pb-4">
+                    <button onclick="renderHistory('facebook')" id="tab-facebook" class="flex-1 py-3 rounded-xl text-sm font-semibold transition-colors bg-slate-800 text-slate-400">Facebook</button>
+                    <button onclick="renderHistory('twitter')" id="tab-twitter" class="flex-1 py-3 rounded-xl text-sm font-semibold transition-colors bg-blue-600 text-white">Twitter</button>
+                    <button onclick="renderHistory('tiktok')" id="tab-tiktok" class="flex-1 py-3 rounded-xl text-sm font-semibold transition-colors bg-slate-800 text-slate-400">TikTok</button>
                 </div>
-                <div id="historyList" class="space-y-3 h-[400px] overflow-y-auto custom-scrollbar"></div>
+                <div id="historyList" class="flex flex-col gap-3 h-[450px] overflow-y-auto pr-2 custom-scrollbar"></div>
+            </div>
+        </div>
+    </div>
+
+    <button id="openModalBtn" class="fixed bottom-6 right-6 bg-slate-800 text-white p-4 rounded-full shadow-2xl border border-white/10 hidden">CMD</button>
+    <div id="commandModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-white/10 w-full max-w-2xl rounded-[2rem] overflow-hidden">
+            <div class="p-5 border-b border-white/5 flex justify-between items-center">
+                <span class="font-bold text-blue-400">Terminal Executor</span>
+                <button id="closeModalBtn" class="text-slate-500 text-2xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <input type="text" id="cmdInput" class="w-full bg-black p-3 rounded-xl text-green-500 font-mono text-sm border border-white/5 mb-4" placeholder="Command...">
+                <div id="output" class="bg-black p-4 rounded-xl h-64 overflow-y-auto font-mono text-xs text-slate-400 border border-white/5 mb-4"></div>
+                <div class="flex gap-2">
+                    <button id="runBtn" class="bg-blue-600 px-6 py-2 rounded-lg font-bold">RUN</button>
+                    <button id="clearBtn" class="bg-slate-800 px-6 py-2 rounded-lg font-bold">CLEAR</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        let currentHistoryTab = 'Twitter';
+        /* ==================================================
+           GLOBAL STATE & INIT
+        ================================================== */
+        let hlsInstances = [];
+        let currentHistoryTab = 'twitter';
 
         function initApp() {
-            renderHistory('Twitter');
-            updateHistoryBadge();
-        }
+        renderHistory('twitter');
+        updateHistoryBadge();
+    }
 
+        /* ==================================================
+           TAB SYSTEM
+        ================================================== */
         function switchMainTab(tabId) {
-            document.getElementById('section-downloader').classList.toggle('hidden', tabId !== 'downloader');
-            document.getElementById('section-history').classList.toggle('hidden', tabId !== 'history');
-            
-            document.getElementById('mainTab-downloader').className = tabId === 'downloader' ? "flex-1 py-3 text-sm font-bold rounded-lg bg-blue-600 text-white" : "flex-1 py-3 text-sm font-bold text-slate-400";
-            document.getElementById('mainTab-history').className = tabId === 'history' ? "flex-1 py-3 text-sm font-bold rounded-lg bg-blue-600 text-white relative" : "flex-1 py-3 text-sm font-bold text-slate-400 relative";
-            
-            if(tabId === 'history') {
-                const history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-                localStorage.setItem('scrapeHistory', JSON.stringify(history.map(i => ({...i, isNew: false}))));
-                updateHistoryBadge();
-                renderHistory(currentHistoryTab);
+            const sectionDownloader = document.getElementById('section-downloader');
+            const sectionHistory = document.getElementById('section-history');
+            const tabDownloaderBtn = document.getElementById('mainTab-downloader');
+            const tabHistoryBtn = document.getElementById('mainTab-history');
+
+            if (tabId === 'downloader') {
+                sectionDownloader.classList.remove('hidden');
+                sectionHistory.classList.add('hidden');
+                tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2";
+                tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-transparent text-slate-400 flex items-center justify-center gap-2";
+            } else {
+                sectionDownloader.classList.add('hidden');
+                sectionHistory.classList.remove('hidden');
+                tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2 relative";
+                tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-transparent text-slate-400 flex items-center justify-center gap-2";
+
+                // New items handling
+                let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+                const newItem = history.find(item => item.isNew);
+                if (newItem) {
+                    let targetCategory = getDomainCategory(newItem.url);
+                    if (!['facebook', 'twitter', 'tiktok'].includes(targetCategory)) targetCategory = 'twitter';
+                    renderHistory(targetCategory);
+                    localStorage.setItem('scrapeHistory', JSON.stringify(history.map(i => ({...i, isNew: false}))));
+                    updateHistoryBadge();
+                } else {
+                    renderHistory(currentHistoryTab);
+                }
             }
         }
 
-        function updateHistoryBadge() {
-            const history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-            const hasNew = history.some(item => item.isNew === true);
-            document.getElementById('badgeContainerMain').innerHTML = hasNew ? `<span class="notification-badge"></span><span class="notification-badge animate-ping" style="opacity:0.6"></span>` : '';
+        /* ==================================================
+           CORE EXTRACTION
+        ================================================== */
+       
+
+document.getElementById('scrape-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const urlInput = document.getElementById('targetUrl');
+    const loading = document.getElementById('loading');
+    const resultWrapper = document.getElementById('resultWrapper');
+    
+    loading.classList.remove('hidden');
+    resultWrapper.classList.add('hidden');
+
+    try {
+        const response = await fetch('/api/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: urlInput.value.trim() })
+        });
+        
+        const res = await response.json();
+
+        if (res.success && res.data?.videyUrl) {
+            // ✓ Sesuai format backend: { title, videyUrl }
+            renderSingleVideo(res.data, urlInput.value);
+            saveToHistory(urlInput.value, res.data.title, [res.data.videyUrl]);
+            document.getElementById('resJson').textContent = JSON.stringify(res, null, 4);
+            resultWrapper.classList.remove('hidden');
+        } else {
+            alert("Gagal: " + (res.error || "Media tidak ditemukan"));
         }
+    } catch (e) {
+        alert("Error koneksi: " + e.message);
+    } finally {
+        loading.classList.add('hidden');
+        updateHistoryBadge();
+    }
+});
+
+
+
+
+
+        /* ==================================================
+           HISTORY UI & LOGIC
+        ================================================== */       
+function renderSingleVideo(data, targetUrl) {
+    const container = document.getElementById('dynamicVideosContainer');
+    container.innerHTML = '';
+    container.classList.remove('hidden');
+
+    const platform = getDomainCategory(targetUrl);
+    const displayTitle = `${platform}: ${data.title}`;
+    // Extract video URL dari videy format
+    const videoSrc = data.videyUrl.replace('https://videy.co/v/?id=', 'https://cdn.videy.co/') + '.mp4';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'bg-slate-900/80 rounded-[2rem] overflow-hidden border border-white/10 shadow-xl p-6';
+    wrapper.innerHTML = `
+        <div class="mb-4">
+            <h3 class="text-blue-400 font-bold text-lg mb-2">${displayTitle}</h3>
+            <div class="bg-black/50 p-4 rounded-xl border border-white/5 break-all">
+                <a href="${data.videyUrl}" target="_blank" class="text-emerald-400 font-mono text-sm">${data.videyUrl}</a>
+            </div>
+        </div>
+        <div class="aspect-video bg-black rounded-xl overflow-hidden mb-4">
+            <video src="${videoSrc}" controls class="w-full h-full object-contain"></video>
+        </div>
+        <button onclick="copyToClipboard('${data.videyUrl}', this)" 
+                class="w-full bg-blue-600 py-4 rounded-xl font-bold text-white active:scale-95 transition-all">
+            📋 SALIN LINK VIDEY
+        </button>
+    `;
+    container.appendChild(wrapper);
+}
+
 
         function getDomainCategory(urlStr) {
-            try {
-                const host = new URL(urlStr).hostname.toLowerCase();
-                if (host.includes('facebook.com') || host.includes('fb.com')) return 'Facebook';
-                if (host.includes('twitter.com') || host.includes('x.com')) return 'Twitter';
-                if (host.includes('tiktok.com')) return 'Tiktok';
-                return 'Media';
-            } catch { return 'Media'; }
-        }
+        try {
+            const hostname = new URL(urlStr).hostname.toLowerCase();
+            if (hostname.includes('facebook.com') || hostname.includes('fb.com')) return 'Facebook';
+            if (hostname.includes('twitter.com') || hostname.includes('x.com')) return 'Twitter';
+            if (hostname.includes('tiktok.com')) return 'Tiktok';
+            return 'Media';
+        } catch { return 'Media'; }
+    }
 
-        /* --- SINKRONISASI HASIL (VIDEY FORMAT) --- */
-        function renderVideos(data, targetUrl) {
-            const container = document.getElementById('dynamicVideosContainer');
-            const platform = getDomainCategory(targetUrl);
-            const displayTitle = `${platform}: ${data.title}`;
-
-            container.innerHTML = `
-                <div class="bg-slate-900/80 rounded-[2rem] overflow-hidden border border-white/10 p-6 shadow-2xl">
-                    <h3 class="text-blue-400 font-bold text-lg mb-4">${displayTitle}</h3>
-                    <div class="bg-black/50 p-4 rounded-xl border border-white/5 mb-4 break-all">
-                        <a href="${data.videyUrl}" target="_blank" class="text-emerald-400 font-mono text-sm">${data.videyUrl}</a>
-                    </div>
-                    <div class="aspect-video bg-black rounded-xl overflow-hidden mb-4">
-                        <video src="${data.videyUrl.replace('v/?id=', '')}.mp4" controls class="w-full h-full"></video>
-                    </div>
-                    <button onclick="copyToClipboard('${data.videyUrl}', this)" class="w-full bg-blue-600 py-4 rounded-xl font-bold text-white transition-transform active:scale-95">SALIN LINK VIDEY</button>
-                </div>`;
-        }
-
-        document.getElementById('scrape-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const urlInput = document.getElementById('targetUrl');
-            const loading = document.getElementById('loading');
-            const resultWrapper = document.getElementById('resultWrapper');
-            
-            loading.classList.remove('hidden');
-            resultWrapper.classList.add('hidden');
-
-            try {
-                const response = await fetch('/api/download', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: urlInput.value })
-                });
-                const res = await response.json();
-
-                if (res.success) {
-                    renderVideos(res.data, urlInput.value);
-                    saveToHistory(urlInput.value, res.data.title, res.data.videyUrl);
-                    document.getElementById('resJson').textContent = JSON.stringify(res, null, 4);
-                    resultWrapper.classList.remove('hidden');
-                } else {
-                    alert("Gagal: " + res.error);
-                }
-            } catch (e) { alert("Server Error"); }
-            finally { loading.classList.add('hidden'); updateHistoryBadge(); }
-        });
-
-        function saveToHistory(url, title, videyUrl) {
-            let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-            const platform = getDomainCategory(url);
-            history.unshift({ id: Date.now(), url, title: `${platform}: ${title}`, videyUrl, date: new Date().toLocaleString(), isNew: true });
-            localStorage.setItem('scrapeHistory', JSON.stringify(history.slice(0, 50)));
-        }
-
-        function renderHistory(filter) {
+        function renderHistory(filter = 'twitter') {
             currentHistoryTab = filter;
+            const tabs = ['facebook', 'twitter', 'tiktok'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (btn) btn.className = t === filter ? "flex-1 py-3 rounded-xl text-sm font-semibold bg-blue-600 text-white" : "flex-1 py-3 rounded-xl text-sm font-semibold bg-slate-800 text-slate-400";
+            });
+
             const list = document.getElementById('historyList');
-            const history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]').filter(i => i.title.startsWith(filter));
+            let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+            history = history.filter(item => getDomainCategory(item.url) === filter);
             
-            list.innerHTML = history.length ? history.map(item => `
-                <div class="bg-black/30 p-4 rounded-xl border border-white/5 relative">
-                    <div class="text-[10px] text-slate-500 mb-1">${item.date}</div>
-                    <div class="font-bold text-sm text-slate-200 truncate pr-10">${item.title}</div>
-                    <div class="text-[10px] text-blue-400 truncate mt-1">${item.videyUrl}</div>
-                    <button onclick="deleteHistory(${item.id})" class="absolute top-4 right-4 text-slate-500">×</button>
-                </div>`).join('') : '<p class="text-center text-slate-600 py-10">Kosong</p>';
+            if (history.length === 0) {
+                list.innerHTML = `<p class="text-center text-slate-500 mt-10">Belum ada riwayat.</p>`;
+                return;
+            }
+
+            list.innerHTML = history.slice(0, 50).map(item => {
+                const domainCat = getDomainCategory(item.url);
+                const domainIcon = getDomainIcon(domainCat);
+                const copyStr = encodeURIComponent([item.title, ...item.media].join('\n'));
+
+                return `
+                <div class="bg-black/30 p-4 rounded-xl border ${item.isNew ? 'border-red-500/60 shadow-lg' : 'border-white/5'} relative hover:border-white/10 transition-colors">
+                    <div class="absolute top-3 right-3 flex gap-2">
+                        <button onclick="copyToClipboard(decodeURIComponent('${copyStr}'), this)" class="text-slate-400 hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></button>
+                        <button onclick="deleteHistory(${item.id})" class="text-slate-500 hover:text-red-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                    </div>
+                    <div class="flex items-center gap-2 mb-2">
+                        ${domainIcon} <span class="text-[10px] text-slate-500 font-mono">${item.date}</span>
+                    </div>
+                    <div class="font-bold text-sm text-slate-200 line-clamp-1 pr-12">${item.title}</div>
+                    <div class="flex flex-wrap gap-2 mt-3">
+                        ${item.media.map((u, i) => `<a href="${u}" target="_blank" class="text-[10px] font-bold bg-slate-800 text-blue-400 px-2 py-1 rounded border border-white/5">Media ${i+1}</a>`).join('')}
+                    </div>
+                </div>`;
+            }).join('');
         }
+
+       
+        
+        function saveToHistory(url, title, media) {
+        let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+        const platform = getDomainCategory(url);
+        const newItem = { 
+            id: Date.now(), 
+            url, 
+            title: `${platform}: ${title}`, 
+            media, 
+            date: new Date().toLocaleString(), 
+            isNew: true 
+        };
+        history.unshift(newItem);
+        localStorage.setItem('scrapeHistory', JSON.stringify(history.slice(0, 50)));
+    }
 
         function deleteHistory(id) {
             let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
@@ -184,15 +376,108 @@
             updateHistoryBadge();
         }
 
-        function copyToClipboard(text, btn) {
-            navigator.clipboard.writeText(text);
-            const old = btn.innerText; btn.innerText = "COPIED!";
-            setTimeout(() => btn.innerText = old, 1500);
+        /* --- Update Fungsi Badge --- */
+/* --- LOGIKA BADGE (SEMBUH) --- */
+    function updateHistoryBadge() {
+        const history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+        const hasNew = history.some(item => item.isNew === true);
+        const container = document.getElementById('badgeContainerMain');
+        
+        if (hasNew) {
+            container.innerHTML = `<span class="notification-badge"></span><span class="notification-badge animate-ping" style="opacity:0.6"></span>`;
+        } else {
+            container.innerHTML = '';
+        }
+    }
+
+/* --- Update Fungsi Render Video (Result) --- */
+
+    /* --- FORMAT RESULT & RENDER --- */
+    function renderVideos(data, targetUrl) {
+        const container = document.getElementById('dynamicVideosContainer');
+        container.innerHTML = '';
+        container.classList.remove('hidden');
+
+        const platform = getDomainCategory(targetUrl);
+        const displayTitle = `${platform}: ${data.title}`;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'bg-slate-900/80 rounded-[2rem] overflow-hidden border border-white/10 shadow-xl p-6';
+        wrapper.innerHTML = `
+            <div class="mb-4">
+                <h3 class="text-blue-400 font-bold text-lg mb-2">${displayTitle}</h3>
+                <div class="bg-black/50 p-4 rounded-xl border border-white/5 break-all">
+                    <a href="${data.videyUrl}" target="_blank" class="text-emerald-400 font-mono text-sm">${data.videyUrl}</a>
+                </div>
+            </div>
+            <div class="aspect-video bg-black rounded-xl overflow-hidden mb-4">
+                <video src="${data.videyUrl.replace('v/?id=', '')}.mp4" controls class="w-full h-full"></video>
+            </div>
+            <button onclick="copyToClipboard('${data.videyUrl}', this)" class="w-full bg-blue-600 py-4 rounded-xl font-bold text-white active:scale-95 transition-all">
+                📋 SALIN LINK VIDEY
+            </button>
+        `;
+        container.appendChild(wrapper);
+    }
+
+        
+        
+        /* ==================================================
+           HELPERS
+        ================================================== */
+        function generateThumbnail(url) {
+            return new Promise((res, rej) => {
+                const v = document.createElement('video'); v.src = url; v.crossOrigin = 'anonymous'; v.currentTime = 1;
+                v.onloadeddata = () => {
+                    const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
+                    c.getContext('2d').drawImage(v, 0, 0); res(c.toDataURL());
+                };
+                v.onerror = rej;
+            });
         }
 
         async function pasteFromClipboard() {
-            const text = await navigator.clipboard.readText();
-            document.getElementById('targetUrl').value = text;
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('targetUrl').value = text;
+            } catch(e) { alert("Izinkan akses clipboard!"); }
+        }
+
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text);
+            if(btn) { 
+                const old = btn.innerHTML; btn.innerHTML = "COPIED!"; 
+                setTimeout(() => btn.innerHTML = old, 1500);
+            }
+        }
+
+        function copyJson(btn) { copyToClipboard(document.getElementById('resJson').textContent, btn); }
+
+        function clearAll() {
+            document.getElementById('targetUrl').value = '';
+            document.getElementById('resultWrapper').classList.add('hidden');
+            hlsInstances.forEach(h => h.destroy()); hlsInstances = [];
+        }
+
+        /* ==================================================
+           MODAL TERMINAL
+        ================================================== */
+        function initModalEvents() {
+            const m = document.getElementById("commandModal");
+            const btn = document.getElementById("openModalBtn");
+            if (['localhost', '127.0.0.1'].includes(window.location.hostname)) btn.classList.remove("hidden");
+            btn.onclick = () => m.style.display = "flex";
+            document.getElementById("closeModalBtn").onclick = () => m.style.display = "none";
+            document.getElementById("clearBtn").onclick = () => { document.getElementById("output").textContent = ""; };
+            document.getElementById("runBtn").onclick = async () => {
+                const cmd = document.getElementById("cmdInput").value;
+                const out = document.getElementById("output");
+                out.textContent = "Processing...";
+                try {
+                    const r = await fetch("/api/command", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cmd }) });
+                    const d = await r.json(); out.textContent = d.output || d.error;
+                } catch(e) { out.textContent = "Error connecting to server."; }
+            };
         }
     </script>
 </body>
