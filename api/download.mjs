@@ -6,7 +6,43 @@ import path from "path";
 import os from "os";
 
 /**
- * [SISTEM DETEKTIF PROFIL]
+ * [SISTEM DETEKTIF TIKTOK]
+ * Mengambil nama profil/judul dari meta TikTok
+ */
+async function getTikTokMetadata(url) {
+  console.log("🔍 [TT-DEBUG] Investigasi TikTok...");
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    const html = await response.text();
+    clearTimeout(timeoutId);
+
+    // TikTok biasanya: "Nama (@user) | TikTok" atau di og:description
+    const ogTitle = html.match(/<meta property="og:title" content="(.*?)"/i);
+    const ogDesc = html.match(/<meta property="og:description" content="(.*?)"/i);
+
+    if (ogTitle && ogTitle[1]) {
+      let title = ogTitle[1].replace(' | TikTok', '').trim();
+      console.log("✅ [TT-DEBUG] Nama Ditemukan:", title);
+      return title;
+    } else if (ogDesc && ogDesc[1]) {
+       return ogDesc[1].substring(0, 30);
+    }
+  } catch (e) {
+    console.error("⚠️ [TT-DEBUG] Gagal ambil metadata TikTok:", e.message);
+  }
+  return null;
+}
+
+/**
+ * [SISTEM DETEKTIF FACEBOOK]
  * Mengambil nama profil dari og:title, og:description, dan twitter:title
  */
 async function getProfileName(url) {
@@ -15,7 +51,7 @@ async function getProfileName(url) {
   
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000); // Batas waktu 4 detik
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     const response = await fetch(url, {
       signal: controller.signal,
@@ -25,9 +61,6 @@ async function getProfileName(url) {
       }
     });
     
-    console.log("🔍 [FB-DEBUG] HTTP Status:", response.status);
-    
-    // Proteksi jika kena redirect ke halaman login
     if (response.url.includes('login.php') || response.url.includes('checkpoint')) {
       console.log("⚠️ [FB-DEBUG] GAGAL: Terdeteksi blokir/Redirect ke Login");
       return null;
@@ -36,50 +69,34 @@ async function getProfileName(url) {
     const html = await response.text();
     clearTimeout(timeoutId);
 
-    // Ambil semua kemungkinan sumber nama dari meta tags
     const ogTitle = html.match(/<meta property="og:title" content="(.*?)"/i);
     const ogDesc = html.match(/<meta property="og:description" content="(.*?)"/i);
     const twTitle = html.match(/<meta name="twitter:title" content="(.*?)"/i);
 
-    console.log("🔍 [FB-DEBUG] OG-Title:", ogTitle ? ogTitle[1] : "KOSONG");
-    console.log("🔍 [FB-DEBUG] OG-Desc:", ogDesc ? ogDesc[1] : "KOSONG");
-
-    // Gabungkan semua teks untuk dianalisis
     let rawPool = [
       ogTitle ? ogTitle[1] : "",
       twTitle ? twTitle[1] : "",
       ogDesc ? ogDesc[1] : ""
     ].join(' | ');
 
-    // 1. Dekode entitas HTML (&#xa0; dll) dan bersihkan spasi ganda
     let cleanPool = rawPool.replace(/&#\w+;/g, ' ').replace(/\s+/g, ' ');
-    console.log("🔍 [FB-DEBUG] Decoded Pool:", cleanPool);
-
-    // 2. Pecah berdasarkan pemisah umum Facebook (pipa, dash, dot)
     const parts = cleanPool.split(/[|]|\s-\s|\s·\s/).map(p => p.trim());
 
-    // 3. FILTER: Buang potongan teks yang merupakan statistik atau info generic
     const candidates = parts.filter(p => {
       const isStats = /tayangan|tanggapan|views|reactions|\d+\s?rb|\d+\s?jt|\d+\s?K|\d+\s?M/i.test(p);
       const isGeneric = /facebook|video|reels|watch|shared/i.test(p);
-      const isShort = p.length < 3; // Nama orang jarang cuma 2 huruf
+      const isShort = p.length < 3;
       return !isStats && !isGeneric && !isShort;
     });
 
-    console.log("🔍 [FB-DEBUG] Kandidat Akhir:", JSON.stringify(candidates));
-
     if (candidates.length > 0) {
-      // Ambil kandidat paling belakang (biasanya letak nama profil di Reels)
       const result = candidates[candidates.length - 1];
       console.log("✅ [FB-DEBUG] BERHASIL AMBIL NAMA:", result);
       return result;
     }
   } catch (e) {
-    if (e.name === 'AbortError') console.error("❌ [FB-DEBUG] ERROR: Timeout tercapai.");
-    else console.error("❌ [FB-DEBUG] ERROR:", e.message);
+    console.error("❌ [FB-DEBUG] ERROR:", e.message);
   }
-
-  console.log("⚠️ [FB-DEBUG] Gagal mendapatkan nama dari metadata.");
   return null; 
 }
 
@@ -88,7 +105,6 @@ async function getProfileName(url) {
  */
 async function uploadToVidey(remoteUrl) {
   const tempFilePath = path.join(os.tmpdir(), `video_${Date.now()}.mp4`);
-
   try {
     console.log("⏳ [Step 10.1] Mengunduh video ke /tmp...");
     const response = await fetch(remoteUrl);
@@ -98,20 +114,11 @@ async function uploadToVidey(remoteUrl) {
     fs.writeFileSync(tempFilePath, buffer);
 
     console.log("⏳ [Step 10.2] Mengunggah ke Videy API...");
-    const cmd = `
-    curl -s -X POST https://videy.co/api/upload \
-    -H "Origin: https://videy.co" \
-    -H "Referer: https://videy.co/" \
-    -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-    -F "file=@${tempFilePath};type=video/mp4"
-    `;
+    const cmd = `curl -s -X POST https://videy.co/api/upload -H "Origin: https://videy.co" -H "Referer: https://videy.co/" -A "Mozilla/5.0" -F "file=@${tempFilePath};type=video/mp4"`;
 
-    const result = execSync(cmd).toString();
-    const json = JSON.parse(result);
-
+    const result = JSON.parse(execSync(cmd).toString());
     if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
-    return json?.id ? `https://videy.co/v/?id=${json.id}` : null;
-
+    return result?.id ? `https://videy.co/v/?id=${result.id}` : null;
   } catch (error) {
     console.error("❌ Error di uploadToVidey:", error.message);
     if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
@@ -129,13 +136,14 @@ export default async function handler(req, res) {
     const { url } = req.body;
     if (!url) return res.status(400).json({ success: false, error: "URL kosong" });
 
-    // Step 1: Jalankan SnapSave & Scraping Nama secara PARALEL
+    // Step 1: Deteksi Platform & Ekstraksi Paralel
     console.log("📥 [1] Memulai ekstraksi paralel...");
     const isFB = url.includes('facebook.com') || url.includes('fb.com');
+    const isTT = url.includes('tiktok.com');
 
     const [snapResult, profileName] = await Promise.all([
         snapsave(url),
-        isFB ? getProfileName(url) : Promise.resolve(null)
+        isFB ? getProfileName(url) : (isTT ? getTikTokMetadata(url) : Promise.resolve(null))
     ]);
 
     if (!snapResult?.success) {
@@ -151,17 +159,18 @@ export default async function handler(req, res) {
     const videyLink = await uploadToVidey(rawUrl);
     if (!videyLink) return res.status(500).json({ success: false, error: "Gagal upload ke Videy" });
 
-    // Step 3: Penentuan Judul (Karena SnapSave tidak mengembalikan metadata)
-    let finalTitle = "Facebook Media";
+    // Step 3: Penentuan Judul & Fallback (Dinamis sesuai platform)
+    let platformLabel = "Media";
+    if (isFB) platformLabel = "FB Video";
+    else if (isTT) platformLabel = "TikTok";
 
-    if (profileName) {
-      finalTitle = profileName;
-    } else {
-      // FALLBACK: Jika scraping nama profil gagal, ambil ID dari URL 
-      // agar tidak semua history bernama "Facebook User"
-      const urlParts = url.split('/');
-      const lastId = urlParts.filter(p => p.length > 5).pop() || "Video";
-      finalTitle = `FB Video ${lastId.substring(0, 8)}`;
+    let finalTitle = profileName;
+
+    if (!finalTitle) {
+      // Jika scraping gagal, ambil ID dari URL agar tetap unik
+      const urlParts = url.split('?')[0].split('/');
+      const lastId = urlParts.filter(p => p.length > 4).pop() || "Content";
+      finalTitle = `${platformLabel} ${lastId.substring(0, 8)}`;
     }
 
     return res.status(200).json({
