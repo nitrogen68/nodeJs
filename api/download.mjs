@@ -70,37 +70,49 @@ async function getProfileName(url) {
       }
     });
     
-    if (response.url.includes('login.php') || response.url.includes('checkpoint')) {
-      console.log(`⚠️ [${platform}-DEBUG] GAGAL: Terdeteksi blokir/Redirect ke Login`);
-      return null;
-    }
-
     const html = await response.text();
     clearTimeout(timeoutId);
 
     const ogTitle = html.match(/<meta property="og:title" content="(.*?)"/i);
     const ogDesc = html.match(/<meta property="og:description" content="(.*?)"/i);
-    const twTitle = html.match(/<meta name="twitter:title" content="(.*?)"/i);
 
     let rawPool = [
       ogTitle ? ogTitle[1] : "",
-      twTitle ? twTitle[1] : "",
       ogDesc ? ogDesc[1] : ""
     ].join(' | ');
 
-    let cleanPool = rawPool.replace(/&#\w+;/g, ' ').replace(/\s+/g, ' ');
-    const parts = cleanPool.split(/[|]|\s-\s|\s·\s/).map(p => p.trim());
+    // 1. Dekode entitas HTML (&quot; menjadi ", dll)
+    let cleanPool = rawPool
+      .replace(/&quot;/g, '"')
+      .replace(/&#\w+;/g, ' ')
+      .replace(/\s+/g, ' ');
 
+    console.log(`🔍 [${platform}-DEBUG] Raw Metadata:`, cleanPool);
+
+    // 2. Pecah berdasarkan pemisah FB/IG termasuk kata " pada " atau " on "
+    // Kita tambahkan \spada\s dan \son\s ke dalam split
+    const parts = cleanPool.split(/[|]|\s-\s|\s·\s|\spada\s|\son\s/i).map(p => p.trim());
+    console.log(`🔍 [${platform}-DEBUG] Parts:`, JSON.stringify(parts));
+
+    // 3. Filter Kandidat
     const candidates = parts.filter(p => {
+      // Buang yang mengandung tanggal (April, Mei, 2026, dll)
+      const isDate = /\d{4}|Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Sep|Okt|Nov|Des/i.test(p);
       const isStats = /tayangan|tanggapan|views|reactions|\d+\s?rb|\d+\s?jt|\d+\s?K|\d+\s?M/i.test(p);
-      const isGeneric = /facebook|instagram|video|reels|watch|shared|post|photo/i.test(p);
-      const isShort = p.length < 3;
-      return !isStats && !isGeneric && !isShort;
+      const isGeneric = /facebook|instagram|reels|watch|shared|post|video/i.test(p);
+      
+      return !isDate && !isStats && !isGeneric && p.length > 2;
     });
 
     if (candidates.length > 0) {
-      const result = candidates[candidates.length - 1];
-      console.log(`✅ [${platform}-DEBUG] BERHASIL AMBIL NAMA:`, result);
+      // Untuk Instagram, nama profil biasanya ada di bagian PALING DEPAN (parts[0])
+      // Sedangkan Facebook biasanya di bagian belakang.
+      let result = platform === 'IG' ? candidates[0] : candidates[candidates.length - 1];
+      
+      // Bersihkan jika masih ada sisa caption (seperti tanda kutip)
+      result = result.replace(/[":].*$/, '').trim();
+
+      console.log(`✅ [${platform}-DEBUG] HASIL AKHIR:`, result);
       return result;
     }
   } catch (e) {
@@ -108,6 +120,7 @@ async function getProfileName(url) {
   }
   return null; 
 }
+
 
 /**
  * Fungsi untuk mengunggah ke Videy melalui file lokal sementara
