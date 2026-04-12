@@ -1,1295 +1,303 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📥 Media Downloader</title>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Simple Icons CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simple-icons/7.1.0/css/simpleicons.css">
-
+    <title>MEDIAGRAPH Pro - Video Extractor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-        /* Reset CSS */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        /* Body Styles */
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #1e1e2f, #2a4066);
-            color: #fff;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start; /* Mengubah menjadi flex-start */
-            align-items: center;
-            padding: 20px;
-            padding-top: 70px; 
-        }
-
-        /* Header Styles */
-        header.app-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 60px;
-            background: rgba(15, 15, 20, 0.85);
-            backdrop-filter: blur(8px);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 15px;
-            box-shadow: 0 2px 10px rgba(0, 255, 255, 0.1);
-            z-index: 1000; /* Meningkatkan z-index */
-        }
-
-        .icon-group-left,
-        .icon-group-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .header-icon {
-            cursor: pointer;
-            width: 26px;
-            height: 26px;
-            color: #00f2ff;
-            transition: color 0.25s ease, transform 0.25s ease;
-        }
-
-        .header-icon:hover {
-            color: #ff4081;
-            transform: scale(1.15);
-        }
-
-        .header-icon.login {
-            color: #4CAF50;
-        }
-
-        /* Container Styles */
-        .container {
-            max-width: 500px; /* Meningkatkan lebar container */
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 30px;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            margin-top: 80px; /* Memberi ruang di bawah header */
-        }
-
-        h1 {
-            font-size: 2.2rem; /* Ukuran font lebih besar */
-            font-weight: 700;
-            color: #00f2ff;
-            margin-bottom: 20px;
-            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
-        }
-
-        /* Input Styles */
-        .url-input-wrapper {
-            position: relative;
-            width: 100%;
-            margin-bottom: 15px;
-        }
-
-        .url-input-wrapper input {
-            width: 100%;
-            padding: 14px 45px 14px 14px;
-            border: none;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            font-size: 1rem;
-            outline: none;
-            transition: background 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .url-input-wrapper input:focus {
-            background: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
-        }
-
-        .paste-icon {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: linear-gradient(90deg, #00b4ff, #00f2ff);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 6px 9px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background 0.3s ease;
-        }
-
-        .paste-icon:hover {
-            background: linear-gradient(90deg, #0096d6, #00d9ff);
-        }
-
-        /* Button Styles */
-        .btn {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn-download {
-            background: linear-gradient(90deg, #00b4ff, #00f2ff);
-        }
-
-        .btn-download:hover {
-            background: linear-gradient(90deg, #0096d6, #00d9ff);
-        }
-
-        .copy-btn {
-            background: linear-gradient(90deg, #4CAF50, #66BB6A);
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            margin: 10px 5px;
-            font-weight: 600;
-            transition: background 0.3s ease, transform 0.3s ease;
-        }
-
-        .copy-btn:hover {
-            background: linear-gradient(90deg, #45a049, #5cb85c);
-            transform: translateY(-2px);
-        }
-
-        /* Progress Bar Styles */
-        #progressContainer {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            height: 8px;
-            margin: 20px 0;
-            overflow: hidden;
-            display: none;
-        }
-
-        #progressBar {
-            width: 0;
-            height: 100%;
-            background: linear-gradient(90deg, #00f2ff, #ff4081);
-            transition: width 0.4s ease;
-        }
-
-        #progressText {
-            color: #ccc;
-            font-size: 0.9rem;
-            margin-top: 5px;
-        }
-
-        /* Result Styles */
-        #result {
-            margin-top: 20px;
-        }
-
-        .download-btn {
-            display: inline-block;
-            background: linear-gradient(90deg, #ff4081, #ff6f61);
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 600;
-            margin: 10px 5px;
-            transition: background 0.3s ease, transform 0.3s ease;
-        }
-
-        .download-btn:hover {
-            background: linear-gradient(90deg, #e03575, #f05a4f);
-            transform: translateY(-2px);
-        }
-
-        p.error {
-            color: #ff6f61;
-            font-weight: 500;
-            background: rgba(255, 107, 97, 0.2);
-            padding: 10px;
-            border-radius: 8px;
-        }
-
-        /* Video Wrapper Styles */
-        .video-wrapper {
-            position: relative;
-            margin-top: 20px;
-            border-radius: 12px;
-            overflow: hidden;
-            background: #000;
-        }
-
-        video,
-        img.thumbnail {
-            width: 100%;
-            max-height: 400px;
-            object-fit: cover;
-            border-radius: 12px;
-        }
-
-        .play-icon {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 64, 129, 0.8);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background 0.3s ease, transform 0.3s ease;
-        }
-
-        .play-icon:hover {
-            background: rgba(255, 64, 129, 1);
-            transform: translate(-50%, -50%) scale(1.1);
-        }
-
-        .play-icon::before {
-            content: '▶';
-            font-size: 30px;
-            color: #fff;
-        }
-
-        #loadingText {
-            color: #ccc;
-            font-size: 0.9rem;
-            margin-bottom: 10px;
-        }
-
-        /* Top Buttons Styles */
-        .top-buttons {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .btn-refresh,
-        .btn-command {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            height: 42px;
-            padding: 0 18px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.3s, transform 0.2s;
-        }
-
-        .btn-refresh {
-            background: linear-gradient(90deg, #ff4081, #ff6f61);
-            color: white;
-        }
-
-        .btn-refresh:hover {
-            background: linear-gradient(90deg, #e03575, #f05a4f);
-            transform: scale(1.03);
-        }
-
-        .btn-command {
-            background: linear-gradient(90deg, #238636, #2ea043);
-            color: white;
-        }
-
-        .btn-command:hover {
-            background: linear-gradient(90deg, #2ea043, #34c759);
-            transform: scale(1.03);
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 999;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.7);
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: #161b22;
-            color: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
-            animation: fadeIn 0.3s ease-in-out;
-            text-align: center;
-        }
-
-        .modal-content button {
-            background: #238636;
-            border: none;
-            color: white;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .modal-content button:hover {
-            background: #2ea043;
-        }
-
-        #output {
-            text-align: left;
-            background: #010409;
-            padding: 10px;
-            margin-top: 15px;
-            border-radius: 6px;
-            border: 1px solid #30363d;
-            height: 150px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 13px;
-            color: #c9d1d9;
-        }
-
-        /* Hidden Class */
-        .hidden {
-            display: none !important;
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #050505; color: #cbd5e1; }
         
-/* Support Container Styles */
-.support-container {
-    margin-top: 25px; /* jarak ideal dari header */
-    padding: 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
-    text-align: center;
-    width: 85%;
-    max-width: 320px;
-    margin-left: auto;
-    margin-right: auto;
-    backdrop-filter: blur(8px);
+        .loader { border-top-color: #3b82f6; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        
+        @keyframes pastePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .paste-ready { animation: pastePulse 1.5s ease-in-out infinite; }
 
-    /* memastikan posisi rapi antar section */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
+        @keyframes popCopy { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .animate-pop { animation: popCopy 0.3s ease-in-out; }
 
-/* Judul support */
-.support-container h2 {
-    font-size: 14px;
-    font-weight: 600;
-    color: #a7f3d0;
-    margin-bottom: 8px;
-    letter-spacing: 0.2px;
-}
-
-/* Wrapper ikon */
-.social-icons {
-    display: flex;
-    justify-content: center;
-    gap: 14px;
-    margin-top: 6px;
-}
-
-/* Ikon */
-.social-icons a img {
-    width: 32px;
-    height: 32px;
-    opacity: 0.85;
-    transition: 0.25s ease;
-    filter: invert(1) drop-shadow(0 0 4px rgba(0, 255, 180, 0.35));
-}
-
-.social-icons a img:hover {
-    transform: scale(1.18);
-    opacity: 1;
-    filter: invert(1) drop-shadow(0 0 10px rgba(0, 255, 180, 0.65));
-}
-
-        /* Development Support Container Styles */
-        .development-support-container {
-            margin-top: 20px;
-            padding: 12px;
-            text-align: center;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-            backdrop-filter: blur(10px);
-            width: 90%;
-            max-width: 350px; /* Meningkatkan lebar development support container */
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .development-support-container h2 {
-            font-size: 16px; /* Ukuran font lebih besar */
-            font-weight: 600;
-            color: #00e4c3;
-            margin-bottom: 10px;
-            letter-spacing: 0.3px;
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Responsiveness */
-        @media (max-width: 576px) {
-            .container {
-                padding: 20px;
-            }
-
-            h1 {
-                font-size: 1.8rem;
-            }
-
-            .btn,
-            input {
-                padding: 12px;
-                font-size: 0.9rem;
-            }
-
-            .social-icons {
-                gap: 18px;
-            }
-
-            .social-icons a img {
-                width: 32px;
-                height: 32px;
-            }
-        }
+        .video-wrapper { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; }
+        .thumbnail { width: 100%; height: 100%; object-cover: cover; }
+        .play-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: rgba(59, 130, 246, 0.9); border-radius: 50%; display: flex; items-center: center; justify-content: center; cursor: pointer; border: 2px solid white; }
+        .play-icon::after { content: ''; border-style: solid; border-width: 10px 0 10px 20px; border-color: transparent transparent transparent white; margin-left: 5px; }
     </style>
 </head>
+<body class="min-h-screen p-4 md:p-10 font-sans" onload="initApp()">
 
-<body>
-    <!-- HEADER -->
-    <header class="app-header">
-        <!-- 🔑 Login (pojok kiri atas) -->
-        <div class="icon-group-left">
-            <!-- ✅ Ikon login baru (panah masuk ke profil) -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="header-icon login" onclick="showFloatingMessage('Simulasi: Halaman Login')">
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                <polyline points="10 17 15 12 10 7" />
-                <line x1="15" y1="12" x2="3" y2="12" />
-            </svg>
-        </div>
-
-        <!-- Ikon kanan (Notifikasi) -->
-        <div class="icon-group-right">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="header-icon" onclick="showFloatingMessage('Simulasi: Notifikasi Anda kosong')">
-                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                <path d="M10.375 21a2 2 0 0 0 3.25 0" />
-            </svg>
-        </div>
-    </header>
-
-
-<div class="support-container">
-        <h2>Support:</h2>
-        <div class="social-icons">
-            <a href="Twitter.com" target="_blank">
-                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/twitter.svg" alt="Twitter">
-            </a>
-            <a href="Instagram.com" target="_blank">
-                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/instagram.svg"
-                    alt="Instagram">
-            </a>
-            <a href="Facebook.com" target="_blank">
-                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/facebook.svg" alt="Facebook">
-            </a>
-            <a href="tiktok.com" target="_blank">
-                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/tiktok.svg" alt="TikTok">
-            </a>
-        </div>
-</div>
-    
-
-    <div class="container">
-        <div class="top-buttons">
-            <button id="refreshButton" class="btn btn-refresh" onclick="location.reload()">🔄 Refresh Halaman</button>
-            <button id="openModalBtn" class="btn btn-command">⚙️ Jalankan Command</button>
-        </div>
-        <h1>📥 MediaGM Downloader</h1>
-        <form id="downloadForm">
-            <div class="url-input-wrapper">
-                <input type="url" id="urlInput"
-                    placeholder="Masukkan URL Facebook / Instagram / TikTok / Twitter / Threads" required>
-                <button type="button" id="pasteBtn" class="paste-icon">📋</button>
+    <div class="max-w-4xl mx-auto mt-6">
+        
+        <header class="text-center mb-10">
+            <h1 onclick="location.reload()" class="text-5xl font-black text-white tracking-tighter italic cursor-pointer">MEDIA<span class="text-blue-500 not-italic">GRAPH</span></h1>
+            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-2">Support Platform:</p>
+            
+            <div class="flex justify-center mt-6">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-full border border-white/10">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1877F2" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+                        <span class="text-[10px] font-bold text-slate-300">Facebook</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-full border border-white/10">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"><path d="M4 4l11.733 16h4.267l-11.733 -16zM4 20l6.768 -6.768M13.232 10.768l6.768 -6.768"></path></svg>
+                        <span class="text-[10px] font-bold text-slate-300">Twitter</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-full border border-white/10">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff0050" stroke-width="2"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path></svg>
+                        <span class="text-[10px] font-bold text-slate-300">TikTok</span>
+                    </div>
+                </div>
             </div>
-            <button type="submit" class="btn btn-download">⬇️ Mulai Download</button>
-        </form>
-        <div id="progressContainer">
-            <div id="progressBar"></div>
+        </header>
+
+        <div class="flex p-1 bg-slate-900/80 rounded-xl mb-6 border border-white/5 shadow-lg">
+            <button onclick="switchMainTab('downloader')" id="mainTab-downloader" class="flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-blue-600 text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Downloader
+            </button>
+            <button onclick="switchMainTab('history')" id="mainTab-history" class="flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800 relative">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                History Media 
+                <div id="badgeContainerMain"></div>
+            </button>
         </div>
-        <div id="progressText"></div>
-        <div id="result"></div>
+
+        <div id="section-downloader" class="block">
+            <div class="bg-slate-900/50 p-6 rounded-[2.5rem] shadow-2xl mb-8 border border-white/5 relative">
+                <form id="scrape-form" class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1 relative">
+                        <input type="text" id="targetUrl" name="url" placeholder="Tempel URL target..." required
+                            class="w-full bg-black/50 border border-slate-800 rounded-2xl px-6 py-5 pr-14 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white transition-all placeholder:text-slate-700">
+                        <button type="button" onclick="pasteFromClipboard()" id="btnPaste"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-xl transition-all border border-slate-700 paste-ready"
+                            title="Tempel dari Clipboard">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        </button>
+                    </div>
+                    <button type="submit" id="btnSubmit" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black py-5 px-10 rounded-2xl transition-all flex items-center justify-center shadow-xl shadow-blue-900/20">
+                        <span id="btnText">MULAI EKSTRAK</span>
+                    </button>
+                </form>
+
+                <div id="progressContainer" class="mt-6 hidden">
+                    <div class="w-full bg-slate-800 rounded-full h-2">
+                        <div id="progressBar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="progressText" class="text-[10px] text-slate-500 mt-2 text-center uppercase font-bold tracking-widest"></p>
+                </div>
+
+                <div class="mt-4 flex justify-end items-center pt-2">
+                    <button onclick="clearAll()" class="text-[10px] uppercase font-bold text-slate-500 hover:text-red-400 transition-colors flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Clear Layar
+                    </button>
+                </div>
+            </div>
+
+            <div id="loading" class="hidden text-center py-16 bg-slate-900/50 rounded-[2.5rem] border border-white/5 mb-8">
+                <div class="loader ease-linear rounded-full border-4 border-slate-800 h-16 w-16 mb-6 mx-auto border-t-blue-500"></div>
+                <p id="loadingText" class="text-white font-semibold text-lg transition-all duration-300 tracking-wide">Mengekstrak Data...</p>
+            </div>
+
+            <div id="resultWrapper" class="hidden space-y-8">
+                <div id="dynamicVideosContainer" class="space-y-6"></div>
+                <div id="result" class="mt-4"></div>
+
+                <div class="bg-slate-900/80 rounded-[2rem] border border-white/10 overflow-hidden shadow-xl">
+                    <div class="flex justify-between items-center p-5 border-b border-white/5 bg-black/20">
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest block">System Logs</span>
+                        <button onclick="copyJson(this)" class="flex items-center gap-1.5 text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg transition-all border border-slate-700 active:scale-95">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            <span>COPY LOGS</span>
+                        </button>
+                    </div>
+                    <div class="p-6 bg-black/40">
+                        <pre id="resJson" class="overflow-x-auto text-[11px] text-slate-400 font-mono whitespace-pre-wrap leading-relaxed max-h-[300px] custom-scrollbar"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-history" class="hidden">
+            <div class="bg-slate-900/80 p-6 rounded-[2.5rem] shadow-2xl border border-white/5">
+                <div class="flex gap-2 mb-6 border-b border-white/5 pb-4">
+                    <button onclick="renderHistory('facebook')" id="tab-facebook" class="flex-1 flex items-center justify-center gap-2 px-2 py-3 rounded-xl text-sm font-semibold transition-colors bg-slate-800 text-slate-400">Facebook</button>
+                    <button onclick="renderHistory('twitter')" id="tab-twitter" class="flex-1 flex items-center justify-center gap-2 px-2 py-3 rounded-xl text-sm font-semibold transition-colors bg-blue-600 text-white">Twitter</button>
+                    <button onclick="renderHistory('tiktok')" id="tab-tiktok" class="flex-1 flex items-center justify-center gap-2 px-2 py-3 rounded-xl text-sm font-semibold transition-colors bg-slate-800 text-slate-400">TikTok</button>
+                </div>
+                <div id="historyList" class="flex flex-col gap-3 h-[380px] overflow-y-auto pr-2 custom-scrollbar"></div>
+            </div>
+        </div>
     </div>
 
-    <!-- 🔹 Modal Command Termux -->
-    <div id="commandModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close" id="closeModalBtn">&times;</span>
-            <h2>⚙️ Eksekusi Command Termux</h2>
-            <input id="cmdInput" placeholder="Masukkan perintah (contoh: npm install)"
-                style="width:100%;padding:8px;margin-top:10px;">
-            <!-- Tombol sejajar -->
-            <div style="display:flex; gap:8px; margin-top:10px;">
-                <button id="runBtn">Jalankan</button>
-                <button id="modalPasteBtn">Paste</button>
-                <button id="clearBtn">Clear</button>
+    <button id="openModalBtn" class="fixed bottom-6 right-6 bg-slate-800 text-white p-4 rounded-full shadow-2xl border border-white/10 hidden">CMD</button>
+    <div id="commandModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-white/10 w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl">
+            <div class="p-5 border-b border-white/5 flex justify-between items-center">
+                <span class="font-bold text-blue-400">Terminal Executor</span>
+                <button id="closeModalBtn" class="text-slate-500 hover:text-white">&times;</button>
             </div>
-            <!-- Hasil perintah -->
-            <pre id="output"
-                style="background:#111;color:#0f0;padding:10px;margin-top:15px;border-radius:5px;max-height:200px;overflow:auto;">Menunggu
-                perintah...
-            </pre>
-            <!-- Tombol copy & edit output -->
-            <div style="text-align:center; margin-top:10px;">
-                <button id="copyBtn">📋 Copy Output</button>
-                <button id="editFileBtn" style="display:none; margin-left:10px;">✏️ Edit File</button>
+            <div class="p-6">
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="cmdInput" class="flex-1 bg-black p-3 rounded-xl text-green-500 font-mono text-sm border border-white/5" placeholder="npm start...">
+                    <button id="runBtn" class="bg-blue-600 px-6 rounded-xl font-bold text-sm">RUN</button>
+                </div>
+                <div id="output" class="bg-black p-4 rounded-xl h-64 overflow-y-auto font-mono text-xs text-slate-400 custom-scrollbar border border-white/5"></div>
+                <div class="flex gap-2 mt-4">
+                    <button id="modalPasteBtn" class="text-[10px] font-bold bg-slate-800 px-4 py-2 rounded-lg">PASTE</button>
+                    <button id="clearBtn" class="text-[10px] font-bold bg-slate-800 px-4 py-2 rounded-lg">CLEAR</button>
+                    <button id="copyBtn" class="text-[10px] font-bold bg-slate-800 px-4 py-2 rounded-lg">COPY</button>
+                    <button id="editFileBtn" class="text-[10px] font-bold bg-emerald-600 px-4 py-2 rounded-lg hidden">EDIT FILE</button>
+                </div>
             </div>
-        </div>
-    </div>
-
-    
-    
-
-    <div class="development-support-container">
-        <h2>Dukungan Pengembangan</h2>
-        <div class="social-icons">
-            <a href="https://www.facebook.com/share/1KheTdWAKs/" target="_blank">
-                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/facebook.svg"
-                    alt="Facebook Developer">
-            </a>
-            <a href="https://github.com/nitrogen68/nodeJs" target="_blank">
-                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/github.svg" alt="GitHub">
-            </a>
-            <a href="https://whatsapp.com/channel/0029VbBliD5I1rcmDpByfp26" target="_blank">
-                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/whatsapp.svg" alt="WhatsApp">
-            </a>
         </div>
     </div>
 
     <script>
-        // Fungsi untuk menampilkan pesan mengambang
-        function showFloatingMessage(text) {
-            const msg = document.createElement('div');
-            msg.textContent = text;
-            Object.assign(msg.style, {
-                position: 'fixed',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                background: 'rgba(0, 0, 0, 0.8)',
-                color: '#fff',
-                padding: '12px 20px',
-                borderRadius: '12px',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                zIndex: '9999',
-                opacity: '0',
-                transition: 'opacity 0.3s ease'
-            });
-            document.body.appendChild(msg);
-            requestAnimationFrame(() => (msg.style.opacity = '1'));
-            setTimeout(() => {
-                msg.style.opacity = '0';
-                setTimeout(() => msg.remove(), 500);
-            }, 2000);
-        }
+        /* --- INTEGRASI JS --- */
+        let statusTimers = [];
+        let hlsInstances = [];
+        let currentHistoryTab = 'twitter';
+        let selectedFile = null;
 
-        // Fungsi untuk memvalidasi apakah URL adalah file video
-        async function isValidVideoUrl(url) {
-            try {
-                const response = await fetch(url, {
-                    method: 'HEAD',
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36'
-                    }
-                });
-                const contentType = response.headers.get('Content-Type') || '';
-                return contentType.includes('video/') || url.match(/\.(mp4|mov|avi|webm)$/i);
-            } catch {
-                return false;
-            }
-        }
-
-        // Fungsi untuk menangani unduhan dengan progress bar akurat
-        async function downloadMedia(url) {
-            const randomNum = Math.floor(1000000 + Math.random() * 9000000);
-            let domainName = 'MediaDL';
-            if (url.includes('tiktok.com')) domainName = 'tiktok';
-            else if (url.includes('facebook.com')) domainName = 'facebook';
-            else if (url.includes('instagram.com')) domainName = 'instagram';
-            let fileName = `${domainName}_${randomNum}.mp4`;
-            const progressBar = document.getElementById('progressBar');
-            const progressContainer = document.getElementById('progressContainer');
-            const progressText = document.getElementById('progressText');
-            progressContainer.style.display = 'block';
-            progressBar.style.width = '0%';
-            progressText.textContent = '';
-            showFloatingMessage('⏳ Menghubungkan ke server...');
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 20000);
-            try {
-                const response = await fetch(url, {
-                    method: 'GET',
-                    signal: controller.signal
-                });
-                clearTimeout(timeout);
-                if (!response.ok) throw new Error('Gagal mengambil media');
-                showFloatingMessage('📥 Mengunduh media...');
-                // Ambil nama file dari header atau URL
-                const contentDisposition = response.headers.get('Content-Disposition');
-                if (contentDisposition) {
-                    const fileNameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-                    if (fileNameMatch && fileNameMatch[1]) fileName = fileNameMatch[1];
-                } else {
-                    const urlParts = new URL(url).pathname.split('/');
-                    const lastPart = urlParts[urlParts.length - 1];
-                    if (lastPart && /\.\w+$/.test(lastPart)) fileName = lastPart;
-                }
-                // Deteksi tipe MIME dan sesuaikan ekstensi
-                const contentType = response.headers.get('Content-Type') || '';
-                let extension = '.mp4';
-                if (contentType.includes('image')) extension = '.jpg';
-                else if (contentType.includes('audio')) extension = '.mp3';
-                if (!fileName.includes('.')) fileName += extension;
-                // Dapatkan ukuran total file dari Content-Length
-                const totalSize = parseInt(response.headers.get('Content-Length') || 0);
-                let loadedSize = 0;
-                // Gunakan ReadableStream untuk melacak progress
-                const reader = response.body.getReader();
-                const chunks = [];
-                while (true) {
-                    const {
-                        done,
-                        value
-                    } = await reader.read();
-                    if (done) break;
-                    chunks.push(value);
-                    loadedSize += value.length;
-                    if (totalSize > 0) {
-                        const progress = Math.min((loadedSize / totalSize) * 100, 100);
-                        progressBar.style.width = `${progress}%`;
-                        progressText.textContent = `Mengunduh: ${progress.toFixed(1)}%`;
-                    } else {
-                        progressText.textContent = `Mengunduh: ${Math.round(loadedSize / 1024)} KB diterima`;
-                    }
-                }
-                const blob = new Blob(chunks);
-                const blobUrl = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                showFloatingMessage('✅ Unduhan selesai!');
-                URL.revokeObjectURL(blobUrl);
-                progressContainer.style.display = 'none';
-                progressText.textContent = '';
-            } catch (err) {
-                progressContainer.style.display = 'none';
-                progressText.textContent = '';
-                if (err.name === 'AbortError') {
-                    showFloatingMessage('⏱️ Timeout: Server terlalu lama merespons');
-                } else {
-                    showFloatingMessage(`❌ Gagal mengunduh: ${err.message}`);
-                }
-            }
-        }
-
-        // Event listener untuk tombol paste
-        document.getElementById('pasteBtn').addEventListener('click', async () => {
-            const input = document.getElementById('urlInput');
-            const result = document.getElementById('result');
-            const progressContainer = document.getElementById('progressContainer');
-            try {
-                const text = await navigator.clipboard.readText();
-                const cleanedUrl = extractValidUrl(text.trim());
-                if (!cleanedUrl) {
-                    result.innerHTML =
-                        '<p class="error">⚠️ Masukkan URL Facebook, Instagram, TikTok, atau Twitter/X yang valid.</p>';
-                    progressContainer.style.display = 'none';
-                    return;
-                }
-                input.value = cleanedUrl;
-                result.innerHTML = `<p style="color: #00f2ff;">✅ URL valid: ${cleanedUrl}</p>`;
-            } catch (err) {
-                result.innerHTML = '<p class="error">⚠️ Gagal menempelkan teks dari clipboard.</p>';
-            }
-        });
-
-        // 🔍 Fungsi untuk mengekstrak dan membersihkan URL valid
-        function extractValidUrl(text) {
-            const regex =
-                /(https?:\/\/(?:www\.|vm\.|vt\.)?(facebook\.com|instagram\.com|tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|twitter\.com|x\.com|threads\.net|threads\.com)\/[^\s"'<>]+)/i;
-            const match = text.match(regex);
-            if (match && match[0]) {
-                return match[0].replace(/[.,!?]+$/, '').trim();
-            }
-            return null;
-        }
-
-        // Event listener untuk form submit
-        document.getElementById('downloadForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const urlInput = document.getElementById('urlInput');
-            const progressBar = document.getElementById('progressBar');
-            const progressContainer = document.getElementById('progressContainer');
-            const result = document.getElementById('result');
-            let url = urlInput.value.trim();
-            // === Validasi URL Utama ===
-            const urlPattern =
-                /(https?:\/\/(?:www\.|vm\.)?(facebook\.com|instagram\.com|tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|twitter\.com|x\.com|threads\.net|threads\.com)\/[^\s"'<>]+)/i;
-            // Jika URL tidak langsung cocok dengan pola utama
-            if (!urlPattern.test(url)) {
-                // Fungsi bantu untuk mengekstrak URL yang valid dari teks mentah
-                const extractValidUrl = (text) => {
-                    if (!text) return null;
-                    // === Deteksi otomatis di dalam pesan (auto-extract) ===
-                    const match = text.match(
-                        /(https?:\/\/(?:www\.|vm\.|vt\.)?(facebook\.com|instagram\.com|tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|twitter\.com|x\.com|threads\.net|threads\.com)\/[^\s"'<>]+)/i
-                    );
-                    if (match && match[0]) {
-                        // Bersihkan karakter tambahan di akhir seperti titik, koma, tanda seru, dsb
-                        return match[0].replace(/[.,!?]+$/, '').trim();
-                    }
-                    return null;
-                };
-
-                // Jalankan fungsi deteksi URL
-                const validUrl = extractValidUrl(url);
-                if (validUrl) {
-                    url = validUrl;
-                    // 🔁 Konversi otomatis threads.com → threads.net (agar kompatibel)
-                    if (url.includes("threads.com")) {
-                        
-                        url = url.replace("threads.com", "threads.net");
-                    }
-                } else {
-                    // Jika tidak ditemukan URL yang valid, tampilkan pesan error
-                    result.innerHTML =
-                        `<p class="error">⚠️ URL tidak valid atau platform tidak didukung (Facebook, Instagram, TikTok, X, Threads).</p>`;
-                    progressContainer.style.display = 'none';
-                    return;
-                }
-            }
-            progressContainer.style.display = 'block';
-            progressBar.style.width = '0%';
-            result.innerHTML = '';
-            const simulate = setInterval(() => {
-                let progress = parseInt(progressBar.style.width) || 0;
-                progress += 10;
-                progressBar.style.width = `${progress}%`;
-                if (progress >= 90) clearInterval(simulate);
-            }, 300);
-            try {
-                const res = await fetch('/api/download', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        url
-                    })
-                });
-                const data = await res.json();
-                clearInterval(simulate);
-                progressBar.style.width = '100%';
-                console.log('Response from /api/download:', data);
-                if (data.success && data?.data?.media?.length > 0) {
-                    const media = data.data.media[0];
-                    let preview = data.data.preview || '';
-                    let getPhpData = {
-                        status: 'error',
-                        message: 'No shortlink generated'
-                    };
-                    // Generate thumbnail dari video jika preview tidak ada dan media adalah video
-                    if (!data.data.preview && (media.url?.endsWith('.mp4') || media.type?.includes(
-                            'video'))) {
-                        const video = document.createElement('video');
-                        video.crossOrigin = 'anonymous';
-                        video.src = media.url;
-                        video.preload = 'auto';
-                        video.style.display = 'none';
-                        document.body.appendChild(video);
-                        await new Promise((resolve) => {
-                            let captured = false;
-                            const captureFrame = () => {
-                                if (captured) return;
-                                captured = true;
-                                try {
-                                    const canvas = document.createElement('canvas');
-                                    canvas.width = video.videoWidth;
-                                    canvas.height = video.videoHeight;
-                                    const ctx = canvas.getContext('2d');
-                                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                                    const thumbnail = canvas.toDataURL('image/jpeg');
-                                    video.poster = thumbnail;
-                                    preview = thumbnail;
-                                    console.log(`✅ Thumbnail berhasil ditangkap dari ${media.url}`);
-                                } catch (err) {
-                                    console.warn('⚠️ Gagal membuat thumbnail:', err);
-                                } finally {
-                                    video.remove();
-                                    resolve();
-                                }
-                            };
-                            // Tunggu sedikit sebelum capture agar frame tidak hitam
-                            video.addEventListener('loadeddata', () => {
-                                setTimeout(() => {
-                                    video.currentTime = 1; // Lompat ke 1 detik
-                                }, 500);
-                            });
-                            // Setelah seek ke detik 1 berhasil, baru capture frame
-                            video.addEventListener('seeked', captureFrame);
-                            video.onerror = () => {
-                                console.warn('⚠️ Video gagal dimuat untuk thumbnail.');
-                                video.remove();
-                                resolve();
-                            };
-                            video.load();
-                        });
-                    }
-                    // Kirim request ke proxy/get.php dengan timeout dan log URL
-                    console.log('Attempting to fetch shortlink for media URL:', media.url);
-                    try {
-                        const validUrl = extractValidUrl(url);
-                        const controller = new AbortController();
-                        const timeout = setTimeout(() => controller.abort(), 10000);
-                        const getPhpUrl = `/proxy/get.php?send=${media.url}&source=${validUrl}`;
-                        console.log(
-                            'Full URL sent to shtl.pw:',
-                            getPhpUrl);
-                        const getPhpResponse = await fetch(getPhpUrl, {
-                            method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'User-Agent': 'TelegramBot (like TwitterBot)',
-                                'Referer': ''
-                            },
-                            signal: controller.signal
-                        });
-                        clearTimeout(timeout);
-                        getPhpData = await getPhpResponse.json();
-                        console.log('Response from /proxy/get.php:', getPhpData);
-                        if (getPhpData.status === 'success') {
-                            console.log('Shortlink obtained:', getPhpData.url);
-                            showFloatingMessage('✅ Shortlink berhasil didapatkan!');
-                        } else {
-                            console.error('Failed to get shortlink:', getPhpData.message);
-                            getPhpData = {
-                                status: 'error',
-                                message: getPhpData.message || 'Failed to get shortlink'
-                            };
-                            showFloatingMessage(`❌ Gagal mendapatkan shortlink: ${getPhpData.message}`);
-                        }
-                    } catch (error) {
-                        console.error('Error requesting /proxy/get.php:', error.message);
-                        getPhpData = {
-                            status: 'error',
-                            message: 'Failed to connect to shortlink server'
-                        };
-                        if (error.name === 'AbortError') {
-                            showFloatingMessage('⏱️ Timeout: Gagal terhubung ke server shortlink.');
-                        } else {
-                            showFloatingMessage('❌ Gagal terhubung ke server shortlink: ' + error.message);
-                        }
-                    }
-                    // Render mediaHTML
-                    let mediaHTML = '';
-                    if (media) {
-                        const isVideo = media.url?.endsWith('.mp4') || media.type?.includes('video');
-                        if (isVideo) {
-                            mediaHTML = `
-                  <div class="video-wrapper">
-                    <img src="${preview}" alt="Video Thumbnail" class="thumbnail" id="thumbnail">
-                    <div class="play-icon" id="playBtn"></div>
-                    <div id="videoContainer" style="display: none;">
-                      <p id="loadingText">⏳ Sedang memuat video...</p>
-                      <video id="videoPlayer" src="${media.url}" style="width: 100%; display: none;" playsinline>
-                        Browser kamu tidak mendukung video tag.
-                      </video>
-                    </div>
-                  </div>
-                  <p><strong>Resolusi:</strong> ${media.resolution || 'Tidak tersedia'}</p>
-                  <input type="hidden" id="playVideoBtn" value="play">
-                  <a href="${media.url}" class="download-btn" data-url="${media.url}">⬇️ Download Media</a>
-                  ${getPhpData.status === 'success' ?
-                    `<button class="copy-btn" onclick="navigator.clipboard.writeText('${getPhpData.url}').then(() => showFloatingMessage('✅ Shortlink copied to clipboard!'))">📋 Copy Shortlink</button>` :
-                    '<p class="error">⚠️ Shortlink tidak tersedia (masalah server atau koneksi).</p>'
-                  }
-                `;
-                        } else {
-                            mediaHTML = `
-                  <div class="video-wrapper">
-                    <img src="${preview}" alt="Media Preview" class="thumbnail">
-                  </div>
-                  <p><strong>Resolusi:</strong> ${media.resolution || 'Tidak tersedia'}</p>
-                  <a href="${media.url}" class="download-btn" data-url="${media.url}">⬇️ Download Media</a>
-                  ${getPhpData.status === 'success' ?
-                    `<button class="copy-btn" onclick="navigator.clipboard.writeText('${getPhpData.url}').then(() => showFloatingMessage('✅ Shortlink copied to clipboard!'))">📋 Copy Shortlink</button>` :
-                    '<p class="error">⚠️ Shortlink tidak tersedia (masalah server atau koneksi).</p>'
-                  }
-                `;
-                        }
-                    } else {
-                        mediaHTML = `
-                <div class="video-wrapper">
-                  <img src="${preview}" alt="Thumbnail Not Available" class="thumbnail">
-                </div>
-                <p><strong>Resolusi:</strong> Tidak tersedia</p>
-              `;
-                    }
-                    result.innerHTML = mediaHTML;
-                    // Penanganan media video
-                    if (media && (media.url?.endsWith('.mp4') || media.type?.includes('video'))) {
-                        const playBtn = document.getElementById('playBtn');
-                        const videoContainer = document.getElementById('videoContainer');
-                        const videoPlayer = document.getElementById('videoPlayer');
-                        const loadingText = document.getElementById('loadingText');
-                        const thumbnail = document.getElementById('thumbnail');
-                        if (playBtn && videoContainer && videoPlayer && thumbnail) {
-                            const startVideo = () => {
-                                playBtn.style.display = 'none';
-                                thumbnail.style.display = 'none';
-                                loadingText.style.display = 'block';
-                                videoContainer.style.display = 'block';
-                                setTimeout(() => {
-                                    loadingText.style.display = 'none';
-                                    videoPlayer.style.display = 'block';
-                                    videoPlayer.play();
-                                }, 800);
-                            };
-                            playBtn.addEventListener('click', startVideo);
-                            document.getElementById('playVideoBtn')?.addEventListener('click',
-                                startVideo);
-                            videoPlayer.addEventListener('click', () => {
-                                if (videoPlayer.paused) {
-                                    videoPlayer.play();
-                                    playBtn.style.display = 'none';
-                                } else {
-                                    videoPlayer.pause();
-                                    playBtn.style.display = 'flex';
-                                }
-                            });
-                            videoPlayer.addEventListener('ended', () => {
-                                playBtn.style.display = 'flex';
-                                videoPlayer.currentTime = 0;
-                            });
-                        }
-                    }
-                } else {
-                    result.innerHTML =
-                        '<p class="error">⚠️ Gagal mendapatkan media. Periksa URL atau coba lagi.</p>';
-                    progressContainer.style.display = 'none';
-                }
-            } catch (err) {
-                clearInterval(simulate);
-                progressContainer.style.display = 'none';
-                result.innerHTML = `<p class="error">❌ Error: ${err.message}</p>`;
-            }
-        });
-        // Event listener untuk tombol download
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('download-btn') && e.target.dataset.url) {
-                e.preventDefault();
-                downloadMedia(e.target.dataset.url);
-            }
-        });
-        // Modal-related scripts (PERBAIKAN)
-        // Hapus logic 'fetch()' dan panggil 'initModalEvents()' secara langsung
-        document.addEventListener("DOMContentLoaded", () => {
-            console.log("✅ DOM dimuat, menginisialisasi modal secara langsung...");
+        function initApp() {
+            renderHistory('twitter');
+            updateHistoryBadge();
             initModalEvents();
+        }
+
+        /* TABS LOGIC */
+        function switchMainTab(tabId) {
+            const tabDownloaderBtn = document.getElementById('mainTab-downloader');
+            const tabHistoryBtn = document.getElementById('mainTab-history');
+            const sectionDownloader = document.getElementById('section-downloader');
+            const sectionHistory = document.getElementById('section-history');
+
+            if (tabId === 'downloader') {
+                sectionDownloader.classList.remove('hidden');
+                sectionHistory.classList.add('hidden');
+                tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-blue-600 text-white";
+                tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800 relative";
+            } else {
+                sectionDownloader.classList.add('hidden');
+                sectionHistory.classList.remove('hidden');
+                tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-blue-600 text-white relative";
+                tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800";
+                renderHistory(currentHistoryTab);
+            }
+        }
+
+        /* SCRAPING LOGIC */
+        document.getElementById('scrape-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const urlInput = document.getElementById('targetUrl');
+            const btnSubmit = document.getElementById('btnSubmit');
+            const loading = document.getElementById('loading');
+            const resultWrapper = document.getElementById('resultWrapper');
+            const resultArea = document.getElementById('result');
+            const progressBar = document.getElementById('progressBar');
+            const progressContainer = document.getElementById('progressContainer');
+            const videoContainer = document.getElementById('dynamicVideosContainer');
+            const jsonEl = document.getElementById('resJson');
+
+            let url = urlInput.value.trim();
+            if (!url) return;
+
+            // UI Reset
+            btnSubmit.disabled = true;
+            loading.classList.remove('hidden');
+            resultWrapper.classList.add('hidden');
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '10%';
+            videoContainer.innerHTML = '';
+            resultArea.innerHTML = '';
+
+            try {
+                // Fetch to backend
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                
+                const data = await response.json();
+                progressBar.style.width = '100%';
+
+                if (data.success && data.data?.media?.length > 0) {
+                    const videoUrls = data.data.media.map(m => m.url);
+                    const title = data.data.description || "Video Media";
+                    
+                    renderVideos(videoUrls, title);
+                    saveToHistory(url, title, videoUrls);
+                    
+                    jsonEl.textContent = JSON.stringify(data, null, 4);
+                } else {
+                    resultArea.innerHTML = `<p class="text-red-400 text-center font-bold">⚠️ Gagal: ${data.error || 'Media tidak ditemukan'}</p>`;
+                }
+                resultWrapper.classList.remove('hidden');
+            } catch (err) {
+                resultArea.innerHTML = `<p class="text-red-400 text-center font-bold">❌ Error: ${err.message}</p>`;
+                resultWrapper.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+                btnSubmit.disabled = false;
+                setTimeout(() => progressContainer.classList.add('hidden'), 1000);
+            }
         });
 
+        /* HISTORY & UTILS */
+        function saveToHistory(url, title, media) {
+            let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+            const newItem = { id: Date.now(), url, title, media, date: new Date().toLocaleString('id-ID'), isNew: true };
+            history.unshift(newItem);
+            localStorage.setItem('scrapeHistory', JSON.stringify(history.slice(0, 50)));
+            updateHistoryBadge();
+        }
+
+        function updateHistoryBadge() {
+            const history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+            const count = history.filter(h => h.isNew).length;
+            document.getElementById('badgeContainerMain').innerHTML = count > 0 ? `<span class="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-black"></span>` : '';
+        }
+
+        async function pasteFromClipboard() {
+            const text = await navigator.clipboard.readText();
+            document.getElementById('targetUrl').value = text;
+        }
+
+        function copyJson(btn) {
+            navigator.clipboard.writeText(document.getElementById('resJson').textContent);
+            btn.innerHTML = "COPIED!";
+            setTimeout(() => btn.innerHTML = "COPY LOGS", 2000);
+        }
+
+        function clearAll() {
+            document.getElementById('targetUrl').value = '';
+            document.getElementById('resultWrapper').classList.add('hidden');
+        }
+
+        /* MODAL TERMINAL */
         function initModalEvents() {
             const modal = document.getElementById("commandModal");
-            const closeModalBtn = document.getElementById("closeModalBtn");
-            const openModalBtn = document.getElementById("openModalBtn");
-            const cmdInput = document.getElementById("cmdInput");
-            const output = document.getElementById("output");
-            const runBtn = document.getElementById("runBtn");
-            const modalPasteBtn = document.getElementById("modalPasteBtn");
-            const clearBtn = document.getElementById("clearBtn");
-            const copyBtn = document.getElementById("copyBtn");
-            const editBtn = document.getElementById("editFileBtn"); // Tambahan baru
-            // === LOGIKA BARU: sembunyikan tombol modal jika BUKAN localhost ===
-            const isLocal =
-                window.location.hostname === "localhost" ||
-                window.location.hostname === "127.0.0.1" ||
-                window.location.hostname === "::1";
-            console.log("Hostname:", window.location.hostname);
-            console.log("isLocal:", isLocal);
-            console.log("openModalBtn display:", openModalBtn.style.display, "→ classes:", openModalBtn.classList);
-            if (openModalBtn) {
-                if (isLocal) {
-                    openModalBtn.classList.remove("hidden");
-                } else {
-                    openModalBtn.classList.add("hidden");
-                }
-            }
-            // Cek semua elemen penting
-            if (!modal || !openModalBtn || !cmdInput || !output || !runBtn || !modalPasteBtn || !clearBtn || !
-                copyBtn) {
-                console.error("❌ Elemen modal atau tombol tidak ditemukan:", {
-                    modal: !!modal,
-                    openModalBtn: !!openModalBtn,
-                    cmdInput: !!cmdInput,
-                    output: !!output,
-                    runBtn: !!runBtn,
-                    modalPasteBtn: !!modalPasteBtn,
-                    clearBtn: !!clearBtn,
-                    copyBtn: !!copyBtn,
-                    editBtn: !!editBtn
-                });
-                return;
-            }
-            // Log status tombol edit
-            if (!editBtn) {
-                console.warn(
-                    "⚠️ Tombol Edit File (id='editFileBtn') tidak ditemukan di DOM saat initModalEvents dijalankan.");
-            } else {
-                console.log("✅ Tombol Edit File ditemukan, siap digunakan.");
-            }
-            // Tambahkan event untuk tombol Edit File
-            if (editBtn) {
-                editBtn.addEventListener("click", () => {
-                    try {
-                        if (!window.selectedFile) {
-                            alert("⚠️ Pilih file dulu sebelum mengedit!");
-                            console.warn("🟡 Tombol Edit diklik tanpa ada file terpilih.");
-                            return;
-                        }
-                        console.log("📝 Membuka editor untuk:", window.selectedFile);
-                        showFloatingMessage("📝 Membuka editor untuk: " + window.selectedFile);
-                        // TODO: buka modal editor di sini nanti
-                    } catch (err) {
-                        console.error("❌ Terjadi error saat menekan Edit File:", err);
-                        alert("Terjadi kesalahan saat membuka editor. Periksa konsol untuk detail.");
-                    }
-                });
-            }
-            // Log sukses inisialisasi modal
-            console.log("✅ initModalEvents() berhasil dijalankan dan semua listener aktif.");
-            console.log("✅ Semua elemen modal ditemukan, mengikat event...");
-            openModalBtn.onclick = () => {
-                modal.style.display = "flex";
-                console.log("✅ Modal dibuka");
-            };
-            closeModalBtn.onclick = () => {
-                modal.style.display = "none";
-                console.log("✅ Modal ditutup");
-            };
-            window.onclick = (e) => {
-                if (e.target === modal) {
-                    modal.style.display = "none";
-                    console.log("✅ Modal ditutup via klik luar");
-                }
-            };
-            runBtn.onclick = () => runCommand(cmdInput, output);
-            modalPasteBtn.onclick = () => {
-                console.log("✅ Tombol Paste di modal diklik");
-                pasteCommand(cmdInput);
-            };
-            clearBtn.onclick = () => clearCommand(cmdInput, output);
-            copyBtn.onclick = () => copyOutput(output);
-        }
-        async function pasteCommand(cmdInput) {
-            console.log("✅ Fungsi pasteCommand dipanggil");
-            try {
-                const permissionStatus = await navigator.permissions.query({
-                    name: "clipboard-read"
-                });
-                console.log("✅ Status izin clipboard:", permissionStatus.state);
-                if (permissionStatus.state === "granted" || permissionStatus.state === "prompt") {
-                    const text = await navigator.clipboard.readText();
-                    cmdInput.value = text.trim();
-                    cmdInput.focus();
-                    console.log("✅ Teks berhasil dipaste:", text);
-                    showFloatingMessage("✅ Teks berhasil dipaste!");
-                } else {
-                    console.warn("❌ Izin clipboard ditolak");
-                    showFloatingMessage(
-                        "❌ Izin untuk mengakses clipboard ditolak. Silakan paste secara manual.");
-                }
-            } catch (err) {
-                console.error("❌ Gagal menempelkan teks:", err);
-                showFloatingMessage(
-                    "❌ Gagal menempelkan teks. Pastikan situs berjalan di HTTPS atau localhost, atau paste secara manual."
-                );
-            }
-        }
-        let selectedFile = null; // file aktif saat ini
-        document.addEventListener("DOMContentLoaded", () => {
-            try {
-                console.log("✅ DOMContentLoaded dipicu, mencari tombol edit...");
-                const editBtn = document.getElementById("editFileBtn");
-                if (!editBtn) {
-                    console.error("❌ Tombol edit (id='editFileBtn') tidak ditemukan di halaman!");
-                    return;
-                }
-                console.log("✅ Tombol edit ditemukan, menambahkan event listener...");
-                editBtn.addEventListener("click", () => {
-                    try {
-                        console.log("🟢 Tombol edit diklik");
-                        if (typeof selectedFile === "undefined") {
-                            console.error("❌ Variabel 'selectedFile' belum didefinisikan di mana pun!");
-                            alert("❌ Error: Variabel 'selectedFile' belum didefinisikan!");
-                            return;
-                        }
-                        if (!selectedFile) {
-                            console.warn("⚠️ Tidak ada file yang dipilih!");
-                            alert("⚠️ Pilih file dulu sebelum mengedit!");
-                            return;
-                        }
-                        console.log("📂 File terpilih untuk diedit:", selectedFile);
-                        showFloatingMessage("📝 Membuka editor untuk: " + selectedFile);
-                    } catch (err) {
-                        console.error("💥 Terjadi error di dalam event click editBtn:", err);
-                        alert("💥 Terjadi error saat menjalankan fungsi edit!\n" + err.message);
-                    }
-                });
-            } catch (err) {
-                console.error("💥 Terjadi error saat inisialisasi tombol edit:", err);
-                alert("💥 Error inisialisasi tombol edit!\n" + err.message);
-            }
-        });
-        async function runCommand(cmdInput, output) {
-            const cmd = cmdInput.value.trim();
-            if (!cmd) {
-                output.textContent = "⚠️ Masukkan perintah terlebih dahulu.";
-                return;
-            }
-            output.textContent = "⏳ Menjalankan perintah...";
-            try {
-                const res = await fetch("/api/command", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        cmd
-                    })
-                });
+            const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+            
+            if (isLocal) document.getElementById("openModalBtn").classList.remove("hidden");
+            
+            document.getElementById("openModalBtn").onclick = () => modal.style.display = "flex";
+            document.getElementById("closeModalBtn").onclick = () => modal.style.display = "none";
+            document.getElementById("runBtn").onclick = async () => {
+                const cmd = document.getElementById("cmdInput").value;
+                const output = document.getElementById("output");
+                output.textContent = "Running...";
+                const res = await fetch("/api/command", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cmd }) });
                 const data = await res.json();
-                if (!data.success) {
-                    output.textContent = "❌ Error: " + (data.error || "Terjadi kesalahan.");
-                    return;
-                }
-                const lines = (data.output || "").trim().split("\n");
-                // Jika hasil berupa daftar file (misal hasil "ls")
-                if (lines.length > 1) {
-                    const ul = document.createElement("ul");
-                    ul.style.listStyle = "none";
-                    ul.style.padding = "0";
-                    ul.style.margin = "0";
-                    lines.forEach((line) => {
-                        const li = document.createElement("li");
-                        li.textContent = line;
-                        li.style.padding = "5px 10px";
-                        li.style.cursor = "pointer";
-                        li.style.borderBottom = "1px solid #333";
-                        li.addEventListener("mouseover", () => (li.style.background = "#222"));
-                        li.addEventListener("mouseout", () => {
-                            if (!li.classList.contains("active")) li.style.background = "";
-                        });
-                        // Klik file -> aktifkan & tampilkan tombol edit
-                        li.addEventListener("click", () => {
-                            ul.querySelectorAll("li").forEach((el) => {
-                                el.classList.remove("active");
-                                el.style.background = "";
-                                el.style.color = "#0f0";
-                            });
-                            li.classList.add("active");
-                            li.style.background = "#0f0";
-                            li.style.color = "#000";
-                            selectedFile = line; // simpan file aktif
-                            // Tampilkan tombol edit jika elemennya ada
-                            const editButton = document.getElementById("editFileBtn");
-                            if (editButton) {
-                                editButton.style.display = "inline-block";
-                            }
-                        });
-                        ul.appendChild(li);
-                    });
-                    output.innerHTML = "";
-                    output.appendChild(ul);
-                } else {
-                    output.textContent = data.output || "✅ Selesai tanpa output.";
-                }
-                output.scrollTop = output.scrollHeight;
-            } catch (err) {
-                output.textContent = "🚫 Tidak dapat terhubung ke server.";
-            }
-        }
-
-        function clearCommand(cmdInput, output) {
-            cmdInput.value = "";
-            output.textContent = "Menunggu perintah...";
-            // Sembunyikan tombol edit saat output dibersihkan
-            const editButton = document.getElementById("editFileBtn");
-            if (editButton) {
-                editButton.style.display = "none";
-            }
-            selectedFile = null;
-        }
-
-        function copyOutput(output) {
-            const text = output.textContent;
-            navigator.clipboard.writeText(text)
-                .then(() => showFloatingMessage("✅ Output berhasil disalin!"))
-                .catch(() => showFloatingMessage("❌ Gagal menyalin output."));
+                output.textContent = data.output || data.error;
+            };
         }
     </script>
 </body>
