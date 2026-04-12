@@ -1,30 +1,57 @@
 // api/download.mjs
 import { snapsave } from "snapsave-media-downloader";
-import FormData from "form-data";
 import { execSync } from "child_process";
 import fs from "fs";
+import path from "path";
+import os from "os";
 
-async function uploadToVidey(filePath){
+/**
+ * Fungsi untuk mengunggah ke Videy dengan cara mengunduh ke lokal sementara
+ */
+async function uploadToVidey(remoteUrl) {
+  // Membuat path file sementara di folder /tmp (standar untuk serverless/Vercel)
+  const tempFilePath = path.join(os.tmpdir(), `video_${Date.now()}.mp4`);
 
-  const cmd = `
-  curl -X POST https://videy.co/api/upload \
-  -H "Origin: https://videy.co" \
-  -H "Referer: https://videy.co/" \
-  -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-  -F "file=@${filePath};type=video/mp4"
-  `;
+  try {
+    console.log("⏳ [Step 10.1] Mengunduh video ke penyimpanan sementara...");
+    
+    // 1. Download file dari remote URL ke local temp file
+    const response = await fetch(remoteUrl);
+    if (!response.ok) throw new Error(`Gagal mengunduh video dari source: ${response.statusText}`);
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    fs.writeFileSync(tempFilePath, buffer);
 
-  const result = execSync(cmd).toString();
+    console.log("⏳ [Step 10.2] Mengunggah file lokal ke Videy...");
 
-  const json = JSON.parse(result);
+    // 2. Jalankan curl menggunakan path file LOKAL (@tempFilePath)
+    const cmd = `
+    curl -X POST https://videy.co/api/upload \
+    -H "Origin: https://videy.co" \
+    -H "Referer: https://videy.co/" \
+    -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+    -F "file=@${tempFilePath};type=video/mp4"
+    `;
 
-  return json?.id
-    ? `https://videy.co/v/?id=${json.id}`
-    : null;
+    const result = execSync(cmd).toString();
+    const json = JSON.parse(result);
+
+    // 3. Hapus file sementara agar tidak memenuhi disk
+    if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+
+    return json?.id ? `https://videy.co/v/?id=${json.id}` : null;
+
+  } catch (error) {
+    console.error("❌ Error di uploadToVidey:", error.message);
+    // Pastikan file temp dihapus jika terjadi error
+    if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+    return null;
+  }
 }
 
 // ============================================
-// MAIN HANDLER - FIXED!
+// MAIN HANDLER
 // ============================================
 export default async function handler(req, res) {
   console.log("🔥 [1] Handler called - Method:", req.method);
@@ -35,7 +62,6 @@ export default async function handler(req, res) {
 
   try {
     const { url } = req.body;
-    console.log("🔥 [2] URL received:", url);
     
     if (!url) {
       return res.status(400).json({ success: false, error: "URL kosong" });
@@ -45,74 +71,39 @@ export default async function handler(req, res) {
     console.log("📥 [3] Calling snapsave...");
     const result = await snapsave(url);
     
-    // ✅ PERBAIKAN UTAMA: Cek result.success DULU!
-    console.log("✅ [4] Snapsave result:", JSON.stringify(result, null, 2));
-    console.log("🔍 [4] result.success:", result?.success);
-    
     if (!result?.success) {
-      console.log("⚠️ [5] Snapsave returned success: false");
       return res.status(404).json({ 
         success: false, 
-        error: result?.error || "Media tidak ditemukan",
-        debug: {
-          snapsaveSuccess: result?.success,
-          snapsaveError: result?.error,
-          url: url
-        }
+        error: result?.error || "Media tidak ditemukan"
       });
     }
 
-    // Step 2: Sekarang aman akses result.data
-    console.log("✅ [6] Snapsave success: true");
-    console.log("🔍 [6] result.data keys:", Object.keys(result.data || {}));
-    
     const mediaArray = result.data?.media;
-    
     if (!Array.isArray(mediaArray) || mediaArray.length === 0) {
-      console.log("⚠️ [7] No media in result.data.media");
       return res.status(404).json({ 
         success: false, 
-        error: "Media tidak ditemukan dalam response",        debug: {
-          hasMedia: Array.isArray(mediaArray),
-          mediaLength: mediaArray?.length,
-          dataKeys: result.data ? Object.keys(result.data) : []
-        }
+        error: "Media tidak ditemukan dalam response"
       });
     }
 
-    // Step 3: Ambil URL video pertama
-    console.log("✅ [8] Media found! Count:", mediaArray.length);
-    console.log("🎬 [8] First media:", JSON.stringify(mediaArray[0], null, 2));
-    
     const firstMedia = mediaArray[0];
     const rawUrl = firstMedia?.url;
     
     if (!rawUrl) {
-      console.error("❌ [9] No URL in first media item");
-      return res.status(500).json({ 
-        success: false, 
-        error: "URL video tidak ditemukan",
-        mediaItem: firstMedia
-      });
+      return res.status(500).json({ success: false, error: "URL video tidak ditemukan" });
     }
     
-    console.log("🎬 [9] Raw URL:", rawUrl);
-    
-    // Step 4: Upload ke Videy
-    console.log("📤 [10] Uploading to Videy...");
+    // Step 4: Upload ke Videy (Sekarang menggunakan fungsi yang sudah diperbaiki)
+    console.log("📤 [10] Processing Upload...");
     const videyLink = await uploadToVidey(rawUrl);
-    console.log("📤 [10] Videy link:", videyLink);
 
     if (!videyLink) {
-      console.log("⚠️ [11] Videy upload failed");
       return res.status(500).json({ 
         success: false, 
-        error: "Gagal upload ke Videy" 
+        error: "Gagal upload ke Videy (Cek log server)" 
       });
     }
 
-    // Step 5: Return response sukses ✅
-    console.log("✅ [12] Success!");
     return res.status(200).json({
       success: true,
       data: {
@@ -122,10 +113,7 @@ export default async function handler(req, res) {
       }
     });
   } catch (err) {
-    console.error("💥 [13] Global error:", err.message);
-    return res.status(500).json({ 
-      success: false, 
-      error: err.message
-    });
+    console.error("💥 Global error:", err.message);
+    return res.status(500).json({ success: false, error: err.message });
   }
 }
