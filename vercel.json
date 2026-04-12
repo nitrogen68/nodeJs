@@ -1,7 +1,11 @@
 {
   "version": 2,
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/download.js" },
-    { "source": "/(.*)", "destination": "/download.js" }
+  "builds": [
+    { "src": "api/download.mjs", "use": "@vercel/node" },
+    { "src": "public/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/download", "dest": "/api/download.mjs" },
+    { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }
