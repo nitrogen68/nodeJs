@@ -216,36 +216,85 @@
            CORE EXTRACTION
         ================================================== */
        
-
 document.getElementById('scrape-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const urlInput = document.getElementById('targetUrl');
     const loading = document.getElementById('loading');
     const resultWrapper = document.getElementById('resultWrapper');
+    const jsonEl = document.getElementById('resJson');
+    
+    const url = urlInput.value.trim();
+    console.log("🌐 [FE] Starting request to:", url);
+    console.log("🌐 [FE] Target API:", '/api/download');
     
     loading.classList.remove('hidden');
     resultWrapper.classList.add('hidden');
 
     try {
+        const startTime = Date.now();
+        console.log("🌐 [FE] Sending POST request...");
+        
         const response = await fetch('/api/download', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: urlInput.value.trim() })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ url })
         });
         
-        const res = await response.json();
+        const elapsed = Date.now() - startTime;
+        console.log(`🌐 [FE] Response received in ${elapsed}ms`);
+        console.log("🌐 [FE] Status:", response.status, response.statusText);
+        console.log("🌐 [FE] Headers:", Object.fromEntries(response.headers.entries()));
+        
+        const contentType = response.headers.get('content-type');
+        console.log("🌐 [FE] Content-Type:", contentType);
+        
+        let data;
+        const responseText = await response.text();
+        console.log("🌐 [FE] Raw response:", responseText.substring(0, 500));
+        
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            console.error("🌐 [FE] Failed to parse JSON:", e);
+            throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}`);
+        }
+        
+        console.log("🌐 [FE] Parsed data:", data);
 
-        if (res.success && res.data?.videyUrl) {
-            // ✓ Sesuai format backend: { title, videyUrl }
-            renderSingleVideo(res.data, urlInput.value);
-            saveToHistory(urlInput.value, res.data.title, [res.data.videyUrl]);
-            document.getElementById('resJson').textContent = JSON.stringify(res, null, 4);
+        if (response.status === 404) {
+            console.error("❌ [FE] 404 Error from backend");
+            alert(`404 - Media tidak ditemukan\n\nDetail: ${data.error || 'Unknown'}\n\nDebug: ${JSON.stringify(data.debug || {}, null, 2)}`);
+            jsonEl.textContent = JSON.stringify(data, null, 2);
+            resultWrapper.classList.remove('hidden');
+            return;
+        }
+        
+        if (response.status === 500) {
+            console.error("❌ [FE] 500 Server Error");
+            alert(`Server Error: ${data.error}\n\nStack: ${data.stack || 'N/A'}`);
+            jsonEl.textContent = JSON.stringify(data, null, 2);
+            resultWrapper.classList.remove('hidden');
+            return;
+        }
+
+        if (data.success && data.data?.videyUrl) {
+            console.log("✅ [FE] Success! Video URL:", data.data.videyUrl);
+            renderSingleVideo(data.data, url);
+            saveToHistory(url, data.data.title, [data.data.videyUrl]);
+            jsonEl.textContent = JSON.stringify(data, null, 2);
             resultWrapper.classList.remove('hidden');
         } else {
-            alert("Gagal: " + (res.error || "Media tidak ditemukan"));
+            console.error("❌ [FE] Unexpected response structure");
+            alert("Gagal: Response tidak sesuai\n\n" + JSON.stringify(data, null, 2));
         }
-    } catch (e) {
-        alert("Error koneksi: " + e.message);
+        
+    } catch (err) {
+        console.error("💥 [FE] Network error:", err);
+        console.error("💥 [FE] Error stack:", err.stack);
+        alert(`Error koneksi: ${err.message}\n\nCek console untuk detail.`);
     } finally {
         loading.classList.add('hidden');
         updateHistoryBadge();
