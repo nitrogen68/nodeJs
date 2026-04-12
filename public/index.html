@@ -403,27 +403,37 @@ function renderSingleVideo(data, targetUrl) {
         
         
 function saveToHistory(url, title, media) {
-    if (!media || media.length === 0) return; // Jangan simpan jika link media kosong
+    if (!media || media.length === 0) return;
 
     let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
     const platform = getDomainCategory(url);
     
-    const newItem = { 
-        id: Date.now(), 
+    // 1. Cari apakah URL ini sudah ada di history
+    const existingIndex = history.findIndex(item => item.url === url);
+
+    const updatedItem = { 
+        id: Date.now(), // ID baru untuk menandai urutan terbaru
         url: url, 
-        title: title, // Simpan title asli saja, kategori nanti ditambah di UI
+        title: title, 
         media: media, 
         date: new Date().toLocaleString('id-ID'), 
         isNew: true 
     };
 
-    history.unshift(newItem);
-    // Batasi history maksimal 50 item
+    if (existingIndex !== -1) {
+        // 2. Jika SUDAH ADA, hapus data lama
+        history.splice(existingIndex, 1);
+    }
+
+    // 3. Tambahkan ke urutan paling atas
+    history.unshift(updatedItem);
+    
+    // Simpan maksimal 50 item saja
     localStorage.setItem('scrapeHistory', JSON.stringify(history.slice(0, 50)));
     
-    // Update badge secara real-time
     updateHistoryBadge();
 }
+
 
 
         function deleteHistory(id) {
