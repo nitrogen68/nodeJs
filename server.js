@@ -2,8 +2,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { snapsave } from "snapsave-media-downloader";
-import fetch from "node-fetch";
-import FormData from "form-data";
+import FormData from "form-data"; // Pastikan ini ada di package.json
 import { exec } from "child_process";
 import os from "os";
 
@@ -12,18 +11,19 @@ app.use(express.json());
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const PORT = process.env.PORT || 3000;
 
+// Sajikan file statis
 app.use(express.static(__dirname));
 
 // --- HELPER: UPLOAD KE VIDEY ---
 async function uploadToVidey(videoUrl) {
     try {
         const response = await fetch(videoUrl);
-        const buffer = await response.arrayBuffer();
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
         const form = new FormData();
-        form.append('file', Buffer.from(buffer), {
+        form.append('file', buffer, {
             filename: 'video.mp4',
             contentType: 'video/mp4',
         });
@@ -41,42 +41,30 @@ async function uploadToVidey(videoUrl) {
         const resJson = await up.json();
         return resJson.id ? `https://videy.co/v/?id=${resJson.id}` : null;
     } catch (e) {
-        console.error("❌ Videy Upload Error:", e.message);
+        console.error("❌ Videy Error:", e.message);
         return null;
     }
 }
 
-// --- ENDPOINT DOWNLOAD & AUTO UPLOAD ---
+// --- ENDPOINT ---
 app.post("/api/download", async (req, res) => {
     try {
         const { url } = req.body;
-        if (!url) return res.status(400).json({ success: false, error: "URL wajib diisi" });
+        if (!url) return res.status(400).json({ success: false, error: "URL kosong" });
 
-        // 1. Scrape via SnapSave
         const result = await snapsave(url);
-        const data = result?.data;
+        if (!result?.data?.media?.length) return res.status(404).json({ success: false, error: "Media tidak ditemukan" });
 
-        if (!data?.media?.length) {
-            return res.status(404).json({ success: false, error: "Media tidak ditemukan." });
-        }
+        const rawUrl = result.data.media[0].url;
+        const videyLink = await uploadToVidey(rawUrl);
 
-        // Ambil media terbaik (biasanya index 0)
-        const rawMediaUrl = data.media[0].url;
-        
-        // 2. Upload ke Videy (Backend Process)
-        const videyLink = await uploadToVidey(rawMediaUrl);
+        if (!videyLink) throw new Error("Gagal upload ke Videy");
 
-        if (!videyLink) {
-            return res.status(500).json({ success: false, error: "Gagal memproses ke Videy." });
-        }
-
-        // 3. Kirim ke FrontEnd
         res.json({
             success: true,
             data: {
-                title: data.description || "Video Content",
-                videyUrl: videyLink,
-                source: url
+                title: result.data.description || "Video Content",
+                videyUrl: videyLink
             }
         });
     } catch (err) {
@@ -84,13 +72,19 @@ app.post("/api/download", async (req, res) => {
     }
 });
 
+// Root route
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.listen(PORT, () => {
-    console.log(`✅ Server aktif di http://localhost:${PORT}`);
-    if (os.platform() === "android") {
-        exec("termux-open-url http://localhost:3000/");
-    }
-});
+// --- VERCEL EXPORT (PENTING!) ---
+export default app;
+
+// --- LOCAL RUN (Hanya jalan jika bukan di Vercel) ---
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`✅ Local server: http://localhost:${PORT}`);
+        if (os.platform() === "android") exec("termux-open-url http://localhost:3000/");
+    });
+}
