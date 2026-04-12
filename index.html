@@ -24,8 +24,8 @@
         .animate-pop { animation: popCopy 0.3s ease-in-out; }
 
         .video-wrapper { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; }
-        .thumbnail { width: 100%; height: 100%; object-cover: cover; }
-        .play-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: rgba(59, 130, 246, 0.9); border-radius: 50%; display: flex; items-center: center; justify-content: center; cursor: pointer; border: 2px solid white; }
+        .thumbnail { width: 100%; height: 100%; object-fit: cover; }
+        .play-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 64px; height: 64px; background: rgba(37, 99, 235, 0.9); border-radius: 50%; display: flex; items-center: center; justify-content: center; cursor: pointer; border: 2px solid white; box-shadow: 0 0 20px rgba(37, 99, 235, 0.5); }
         .play-icon::after { content: ''; border-style: solid; border-width: 10px 0 10px 20px; border-color: transparent transparent transparent white; margin-left: 5px; }
     </style>
 </head>
@@ -71,16 +71,15 @@
             <div class="bg-slate-900/50 p-6 rounded-[2.5rem] shadow-2xl mb-8 border border-white/5 relative">
                 <form id="scrape-form" class="flex flex-col md:flex-row gap-4">
                     <div class="flex-1 relative">
-                        <input type="text" id="targetUrl" name="url" placeholder="Tempel URL target..." required
+                        <input type="text" id="targetUrl" placeholder="Tempel URL target..." required
                             class="w-full bg-black/50 border border-slate-800 rounded-2xl px-6 py-5 pr-14 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white transition-all placeholder:text-slate-700">
                         <button type="button" onclick="pasteFromClipboard()" id="btnPaste"
-                            class="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-xl transition-all border border-slate-700 paste-ready"
-                            title="Tempel dari Clipboard">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                            class="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-xl transition-all border border-slate-700 paste-ready">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                         </button>
                     </div>
-                    <button type="submit" id="btnSubmit" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black py-5 px-10 rounded-2xl transition-all flex items-center justify-center shadow-xl shadow-blue-900/20">
-                        <span id="btnText">MULAI EKSTRAK</span>
+                    <button type="submit" id="btnSubmit" class="bg-blue-600 hover:bg-blue-500 text-white font-black py-5 px-10 rounded-2xl transition-all shadow-xl shadow-blue-900/20">
+                        MULAI EKSTRAK
                     </button>
                 </form>
 
@@ -91,33 +90,29 @@
                     <p id="progressText" class="text-[10px] text-slate-500 mt-2 text-center uppercase font-bold tracking-widest"></p>
                 </div>
 
-                <div class="mt-4 flex justify-end items-center pt-2">
-                    <button onclick="clearAll()" class="text-[10px] uppercase font-bold text-slate-500 hover:text-red-400 transition-colors flex items-center gap-1">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                <div class="mt-4 flex justify-end pt-2">
+                    <button onclick="clearAll()" class="text-[10px] uppercase font-bold text-slate-500 hover:text-red-400 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         Clear Layar
                     </button>
                 </div>
             </div>
 
-            <div id="loading" class="hidden text-center py-16 bg-slate-900/50 rounded-[2.5rem] border border-white/5 mb-8">
+            <div id="loading" class="hidden text-center py-16">
                 <div class="loader ease-linear rounded-full border-4 border-slate-800 h-16 w-16 mb-6 mx-auto border-t-blue-500"></div>
-                <p id="loadingText" class="text-white font-semibold text-lg transition-all duration-300 tracking-wide">Mengekstrak Data...</p>
+                <p class="text-white font-semibold text-lg">Mengekstrak Data...</p>
             </div>
 
             <div id="resultWrapper" class="hidden space-y-8">
                 <div id="dynamicVideosContainer" class="space-y-6"></div>
-                <div id="result" class="mt-4"></div>
-
-                <div class="bg-slate-900/80 rounded-[2rem] border border-white/10 overflow-hidden shadow-xl">
+                
+                <div class="bg-slate-900/80 rounded-[2rem] border border-white/10 overflow-hidden">
                     <div class="flex justify-between items-center p-5 border-b border-white/5 bg-black/20">
-                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest block">System Logs</span>
-                        <button onclick="copyJson(this)" class="flex items-center gap-1.5 text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg transition-all border border-slate-700 active:scale-95">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                            <span>COPY LOGS</span>
-                        </button>
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">System Logs</span>
+                        <button onclick="copyJson(this)" class="text-[10px] font-bold bg-slate-800 text-slate-300 px-3 py-2 rounded-lg border border-slate-700">COPY LOGS</button>
                     </div>
                     <div class="p-6 bg-black/40">
-                        <pre id="resJson" class="overflow-x-auto text-[11px] text-slate-400 font-mono whitespace-pre-wrap leading-relaxed max-h-[300px] custom-scrollbar"></pre>
+                        <pre id="resJson" class="overflow-x-auto text-[11px] text-slate-400 font-mono whitespace-pre-wrap max-h-[300px] custom-scrollbar"></pre>
                     </div>
                 </div>
             </div>
@@ -126,33 +121,28 @@
         <div id="section-history" class="hidden">
             <div class="bg-slate-900/80 p-6 rounded-[2.5rem] shadow-2xl border border-white/5">
                 <div class="flex gap-2 mb-6 border-b border-white/5 pb-4">
-                    <button onclick="renderHistory('facebook')" id="tab-facebook" class="flex-1 flex items-center justify-center gap-2 px-2 py-3 rounded-xl text-sm font-semibold transition-colors bg-slate-800 text-slate-400">Facebook</button>
-                    <button onclick="renderHistory('twitter')" id="tab-twitter" class="flex-1 flex items-center justify-center gap-2 px-2 py-3 rounded-xl text-sm font-semibold transition-colors bg-blue-600 text-white">Twitter</button>
-                    <button onclick="renderHistory('tiktok')" id="tab-tiktok" class="flex-1 flex items-center justify-center gap-2 px-2 py-3 rounded-xl text-sm font-semibold transition-colors bg-slate-800 text-slate-400">TikTok</button>
+                    <button onclick="renderHistory('facebook')" id="tab-facebook" class="flex-1 py-3 rounded-xl text-sm font-semibold transition-colors bg-slate-800 text-slate-400">Facebook</button>
+                    <button onclick="renderHistory('twitter')" id="tab-twitter" class="flex-1 py-3 rounded-xl text-sm font-semibold transition-colors bg-blue-600 text-white">Twitter</button>
+                    <button onclick="renderHistory('tiktok')" id="tab-tiktok" class="flex-1 py-3 rounded-xl text-sm font-semibold transition-colors bg-slate-800 text-slate-400">TikTok</button>
                 </div>
-                <div id="historyList" class="flex flex-col gap-3 h-[380px] overflow-y-auto pr-2 custom-scrollbar"></div>
+                <div id="historyList" class="flex flex-col gap-3 h-[450px] overflow-y-auto pr-2 custom-scrollbar"></div>
             </div>
         </div>
     </div>
 
     <button id="openModalBtn" class="fixed bottom-6 right-6 bg-slate-800 text-white p-4 rounded-full shadow-2xl border border-white/10 hidden">CMD</button>
     <div id="commandModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] hidden items-center justify-center p-4">
-        <div class="bg-slate-900 border border-white/10 w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl">
+        <div class="bg-slate-900 border border-white/10 w-full max-w-2xl rounded-[2rem] overflow-hidden">
             <div class="p-5 border-b border-white/5 flex justify-between items-center">
                 <span class="font-bold text-blue-400">Terminal Executor</span>
-                <button id="closeModalBtn" class="text-slate-500 hover:text-white">&times;</button>
+                <button id="closeModalBtn" class="text-slate-500 text-2xl">&times;</button>
             </div>
             <div class="p-6">
-                <div class="flex gap-2 mb-4">
-                    <input type="text" id="cmdInput" class="flex-1 bg-black p-3 rounded-xl text-green-500 font-mono text-sm border border-white/5" placeholder="npm start...">
-                    <button id="runBtn" class="bg-blue-600 px-6 rounded-xl font-bold text-sm">RUN</button>
-                </div>
-                <div id="output" class="bg-black p-4 rounded-xl h-64 overflow-y-auto font-mono text-xs text-slate-400 custom-scrollbar border border-white/5"></div>
-                <div class="flex gap-2 mt-4">
-                    <button id="modalPasteBtn" class="text-[10px] font-bold bg-slate-800 px-4 py-2 rounded-lg">PASTE</button>
-                    <button id="clearBtn" class="text-[10px] font-bold bg-slate-800 px-4 py-2 rounded-lg">CLEAR</button>
-                    <button id="copyBtn" class="text-[10px] font-bold bg-slate-800 px-4 py-2 rounded-lg">COPY</button>
-                    <button id="editFileBtn" class="text-[10px] font-bold bg-emerald-600 px-4 py-2 rounded-lg hidden">EDIT FILE</button>
+                <input type="text" id="cmdInput" class="w-full bg-black p-3 rounded-xl text-green-500 font-mono text-sm border border-white/5 mb-4" placeholder="Command...">
+                <div id="output" class="bg-black p-4 rounded-xl h-64 overflow-y-auto font-mono text-xs text-slate-400 border border-white/5 mb-4"></div>
+                <div class="flex gap-2">
+                    <button id="runBtn" class="bg-blue-600 px-6 py-2 rounded-lg font-bold">RUN</button>
+                    <button id="clearBtn" class="bg-slate-800 px-6 py-2 rounded-lg font-bold">CLEAR</button>
                 </div>
             </div>
         </div>
@@ -160,292 +150,295 @@
 
     <script>
         /* ==================================================
-   KONFIGURASI & STATE GLOBAL
-================================================== */
-let hlsInstances = [];
-let currentHistoryTab = 'twitter';
-let selectedFile = null;
+           GLOBAL STATE & INIT
+        ================================================== */
+        let hlsInstances = [];
+        let currentHistoryTab = 'twitter';
 
-function initApp() {
-    renderHistory('twitter');
-    updateHistoryBadge();
-    initModalEvents();
-}
-
-/* ==================================================
-   LOGIKA TAB & UI
-================================================== */
-function switchMainTab(tabId) {
-    const tabDownloaderBtn = document.getElementById('mainTab-downloader');
-    const tabHistoryBtn = document.getElementById('mainTab-history');
-    const sectionDownloader = document.getElementById('section-downloader');
-    const sectionHistory = document.getElementById('section-history');
-
-    if (tabId === 'downloader') {
-        sectionDownloader.classList.remove('hidden');
-        sectionHistory.classList.add('hidden');
-        tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-blue-600 text-white";
-        tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800 relative";
-    } else {
-        sectionDownloader.classList.add('hidden');
-        sectionHistory.classList.remove('hidden');
-        tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-blue-600 text-white relative";
-        tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800";
-        renderHistory(currentHistoryTab);
-    }
-}
-
-/* ==================================================
-   CORE: EKSTRAKSI & RENDER VIDEO
-================================================== */
-document.getElementById('scrape-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const urlInput = document.getElementById('targetUrl');
-    const btnSubmit = document.getElementById('btnSubmit');
-    const loading = document.getElementById('loading');
-    const resultWrapper = document.getElementById('resultWrapper');
-    const resultArea = document.getElementById('result');
-    const progressBar = document.getElementById('progressBar');
-    const progressContainer = document.getElementById('progressContainer');
-    const videoContainer = document.getElementById('dynamicVideosContainer');
-    const jsonEl = document.getElementById('resJson');
-
-    let url = urlInput.value.trim();
-    if (!url) return;
-
-    btnSubmit.disabled = true;
-    loading.classList.remove('hidden');
-    resultWrapper.classList.add('hidden');
-    progressContainer.classList.remove('hidden');
-    progressBar.style.width = '20%';
-    videoContainer.innerHTML = '';
-    resultArea.innerHTML = '';
-
-    try {
-        const response = await fetch('/api/download', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url })
-        });
-        
-        const data = await response.json();
-        progressBar.style.width = '100%';
-
-        if (data.success && data.data?.media?.length > 0) {
-            const videoUrls = data.data.media.map(m => m.url);
-            const title = data.data.description || "Video Media";
-            
-            // Panggil fungsi yang tadi hilang
-            renderVideos(videoUrls, title);
-            saveToHistory(url, title, videoUrls);
-            
-            jsonEl.textContent = JSON.stringify(data, null, 4);
-        } else {
-            resultArea.innerHTML = `<p class="text-red-400 text-center font-bold">⚠️ Gagal: ${data.error || 'Media tidak ditemukan'}</p>`;
+        function initApp() {
+            renderHistory('twitter');
+            updateHistoryBadge();
+            initModalEvents();
         }
-        resultWrapper.classList.remove('hidden');
-    } catch (err) {
-        resultArea.innerHTML = `<p class="text-red-400 text-center font-bold">❌ Error: ${err.message}</p>`;
-        resultWrapper.classList.remove('hidden');
-    } finally {
-        loading.classList.add('hidden');
-        btnSubmit.disabled = false;
-        setTimeout(() => progressContainer.classList.add('hidden'), 1000);
-    }
-});
 
-function renderVideos(urls, pageTitle = '') {
-    const container = document.getElementById('dynamicVideosContainer');
-    container.innerHTML = '';
-    container.classList.remove('hidden');
+        /* ==================================================
+           TAB SYSTEM
+        ================================================== */
+        function switchMainTab(tabId) {
+            const sectionDownloader = document.getElementById('section-downloader');
+            const sectionHistory = document.getElementById('section-history');
+            const tabDownloaderBtn = document.getElementById('mainTab-downloader');
+            const tabHistoryBtn = document.getElementById('mainTab-history');
 
-    urls.forEach((url, index) => {
-        (async () => {
-            let videoSrc = url;
-            const isVidey = url.includes('videy.co');
-            if (isVidey) {
-                const videyId = url.match(/[?&]id=([^&]+)/)?.[1] || '';
-                if (videyId) videoSrc = `https://cdn.videy.co/${videyId}.mp4`;
+            if (tabId === 'downloader') {
+                sectionDownloader.classList.remove('hidden');
+                sectionHistory.classList.add('hidden');
+                tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2";
+                tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-transparent text-slate-400 flex items-center justify-center gap-2";
+            } else {
+                sectionDownloader.classList.add('hidden');
+                sectionHistory.classList.remove('hidden');
+                tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2 relative";
+                tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-transparent text-slate-400 flex items-center justify-center gap-2";
+
+                // New items handling
+                let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+                const newItem = history.find(item => item.isNew);
+                if (newItem) {
+                    let targetCategory = getDomainCategory(newItem.url);
+                    if (!['facebook', 'twitter', 'tiktok'].includes(targetCategory)) targetCategory = 'twitter';
+                    renderHistory(targetCategory);
+                    localStorage.setItem('scrapeHistory', JSON.stringify(history.map(i => ({...i, isNew: false}))));
+                    updateHistoryBadge();
+                } else {
+                    renderHistory(currentHistoryTab);
+                }
             }
-            
-            const isHLS = videoSrc.includes('.m3u8');
-            const placeholderId = `placeholder_${index}`;
-            const playerId = `player_${index}`;
+        }
 
-            const wrapper = document.createElement('div');
-            wrapper.className = 'bg-slate-900/80 rounded-[2rem] overflow-hidden border border-white/10 shadow-xl mb-6';
-            wrapper.innerHTML = `
-                <div class="p-5 border-b border-white/5 bg-black/20 flex justify-between items-center">
-                    <span class="font-bold text-white text-sm">Media ${index + 1}</span>
-                    <button onclick="copyToClipboard('${url}', this)" class="text-[10px] bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">COPY LINK</button>
-                </div>
-                <div class="aspect-video bg-black relative" id="videoArea_${index}">
-                    <div id="${placeholderId}" class="w-full h-full flex items-center justify-center cursor-pointer">
-                        <div class="play-icon"></div>
+        /* ==================================================
+           CORE EXTRACTION
+        ================================================== */
+        document.getElementById('scrape-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const urlInput = document.getElementById('targetUrl');
+            const btnSubmit = document.getElementById('btnSubmit');
+            const loading = document.getElementById('loading');
+            const resultWrapper = document.getElementById('resultWrapper');
+            const progressBar = document.getElementById('progressBar');
+            const progressContainer = document.getElementById('progressContainer');
+            const videoContainer = document.getElementById('dynamicVideosContainer');
+            const jsonEl = document.getElementById('resJson');
+
+            let url = urlInput.value.trim();
+            if (!url) return;
+
+            btnSubmit.disabled = true;
+            loading.classList.remove('hidden');
+            resultWrapper.classList.add('hidden');
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '20%';
+            videoContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                
+                const data = await response.json();
+                progressBar.style.width = '100%';
+
+                if (data.success && data.data?.media?.length > 0) {
+                    const videoUrls = data.data.media.map(m => m.url);
+                    const title = data.data.description || "Media Content";
+                    
+                    renderVideos(videoUrls, title);
+                    saveToHistory(url, title, videoUrls);
+                    jsonEl.textContent = JSON.stringify(data, null, 4);
+                } else {
+                    alert("Gagal: " + (data.error || "Media tidak ditemukan"));
+                }
+                resultWrapper.classList.remove('hidden');
+            } catch (err) {
+                alert("Error: " + err.message);
+            } finally {
+                loading.classList.add('hidden');
+                btnSubmit.disabled = false;
+                setTimeout(() => progressContainer.classList.add('hidden'), 1000);
+            }
+        });
+
+        /* ==================================================
+           HISTORY UI & LOGIC
+        ================================================== */
+        function getDomainCategory(urlStr) {
+            try {
+                const hostname = new URL(urlStr).hostname.toLowerCase();
+                if (hostname.includes('facebook.com') || hostname.includes('fb.com')) return 'facebook';
+                if (hostname.includes('twitter.com') || hostname.includes('x.com')) return 'twitter';
+                if (hostname.includes('tiktok.com')) return 'tiktok';
+                return 'other';
+            } catch { return 'other'; }
+        }
+
+        function getDomainIcon(category) {
+            if (category === 'facebook') return `<svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/></svg>`;
+            if (category === 'twitter') return `<svg class="w-4 h-4 text-slate-200" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
+            if (category === 'tiktok') return `<svg class="w-4 h-4 text-pink-500" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/></svg>`;
+            return `<svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>`;
+        }
+
+        function renderHistory(filter = 'twitter') {
+            currentHistoryTab = filter;
+            const tabs = ['facebook', 'twitter', 'tiktok'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (btn) btn.className = t === filter ? "flex-1 py-3 rounded-xl text-sm font-semibold bg-blue-600 text-white" : "flex-1 py-3 rounded-xl text-sm font-semibold bg-slate-800 text-slate-400";
+            });
+
+            const list = document.getElementById('historyList');
+            let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+            history = history.filter(item => getDomainCategory(item.url) === filter);
+            
+            if (history.length === 0) {
+                list.innerHTML = `<p class="text-center text-slate-500 mt-10">Belum ada riwayat.</p>`;
+                return;
+            }
+
+            list.innerHTML = history.slice(0, 50).map(item => {
+                const domainCat = getDomainCategory(item.url);
+                const domainIcon = getDomainIcon(domainCat);
+                const copyStr = encodeURIComponent([item.title, ...item.media].join('\n'));
+
+                return `
+                <div class="bg-black/30 p-4 rounded-xl border ${item.isNew ? 'border-red-500/60 shadow-lg' : 'border-white/5'} relative hover:border-white/10 transition-colors">
+                    <div class="absolute top-3 right-3 flex gap-2">
+                        <button onclick="copyToClipboard(decodeURIComponent('${copyStr}'), this)" class="text-slate-400 hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></button>
+                        <button onclick="deleteHistory(${item.id})" class="text-slate-500 hover:text-red-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                    </div>
+                    <div class="flex items-center gap-2 mb-2">
+                        ${domainIcon} <span class="text-[10px] text-slate-500 font-mono">${item.date}</span>
+                    </div>
+                    <div class="font-bold text-sm text-slate-200 line-clamp-1 pr-12">${item.title}</div>
+                    <div class="flex flex-wrap gap-2 mt-3">
+                        ${item.media.map((u, i) => `<a href="${u}" target="_blank" class="text-[10px] font-bold bg-slate-800 text-blue-400 px-2 py-1 rounded border border-white/5">Media ${i+1}</a>`).join('')}
                     </div>
                 </div>`;
-            
-            container.appendChild(wrapper);
+            }).join('');
+        }
 
-            const placeholder = document.getElementById(placeholderId);
-            const videoArea = document.getElementById(`videoArea_${index}`);
+        function saveToHistory(url, title, media) {
+            let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+            const newItem = { id: Date.now(), url, title, media, date: new Date().toLocaleString('id-ID'), isNew: true };
+            history.unshift(newItem);
+            localStorage.setItem('scrapeHistory', JSON.stringify(history.slice(0, 50)));
+            updateHistoryBadge();
+        }
 
-            // Coba generate thumbnail
+        function deleteHistory(id) {
+            let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+            localStorage.setItem('scrapeHistory', JSON.stringify(history.filter(h => h.id !== id)));
+            renderHistory(currentHistoryTab);
+            updateHistoryBadge();
+        }
+
+        function updateHistoryBadge() {
+            const history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+            const count = history.filter(h => h.isNew).length;
+            const container = document.getElementById('badgeContainerMain');
+            container.innerHTML = count > 0 ? `<span class="absolute -top-1 -right-1 flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>` : '';
+        }
+
+        /* ==================================================
+           VIDEO RENDERING
+        ================================================== */
+        function renderVideos(urls, pageTitle = '') {
+            const container = document.getElementById('dynamicVideosContainer');
+            container.innerHTML = '';
+            container.classList.remove('hidden');
+
+            urls.forEach((url, index) => {
+                (async () => {
+                    let videoSrc = url;
+                    if (url.includes('videy.co')) {
+                        const vId = url.match(/[?&]id=([^&]+)/)?.[1] || '';
+                        if (vId) videoSrc = `https://cdn.videy.co/${vId}.mp4`;
+                    }
+                    
+                    const isHLS = videoSrc.includes('.m3u8');
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'bg-slate-900/80 rounded-[2rem] overflow-hidden border border-white/10 shadow-xl';
+                    wrapper.innerHTML = `
+                        <div class="p-5 border-b border-white/5 bg-black/20 flex justify-between items-center">
+                            <span class="font-bold text-white text-sm">Media ${index + 1}</span>
+                            <button onclick="copyToClipboard('${url}', this)" class="text-[10px] bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">COPY LINK</button>
+                        </div>
+                        <div class="aspect-video bg-black relative" id="vid-area-${index}">
+                            <div class="w-full h-full flex items-center justify-center cursor-pointer" id="placeholder-${index}">
+                                <div class="play-icon"></div>
+                            </div>
+                        </div>`;
+                    
+                    container.appendChild(wrapper);
+
+                    const placeholder = document.getElementById(`placeholder-${index}`);
+                    try {
+                        const thumb = await generateThumbnail(videoSrc);
+                        placeholder.innerHTML = `<img src="${thumb}" class="thumbnail opacity-60"><div class="play-icon"></div>`;
+                    } catch(e) {}
+
+                    placeholder.onclick = () => {
+                        const area = document.getElementById(`vid-area-${index}`);
+                        area.innerHTML = `<video id="player-${index}" class="w-full h-full" controls playsinline></video>`;
+                        const vid = document.getElementById(`player-${index}`);
+                        if (isHLS) {
+                            const hls = new Hls(); hls.loadSource(videoSrc); hls.attachMedia(vid); hlsInstances.push(hls);
+                        } else { vid.src = videoSrc; }
+                        vid.play();
+                    };
+                })();
+            });
+        }
+
+        /* ==================================================
+           HELPERS
+        ================================================== */
+        function generateThumbnail(url) {
+            return new Promise((res, rej) => {
+                const v = document.createElement('video'); v.src = url; v.crossOrigin = 'anonymous'; v.currentTime = 1;
+                v.onloadeddata = () => {
+                    const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
+                    c.getContext('2d').drawImage(v, 0, 0); res(c.toDataURL());
+                };
+                v.onerror = rej;
+            });
+        }
+
+        async function pasteFromClipboard() {
             try {
-                const thumb = await generateThumbnail(videoSrc);
-                placeholder.style.backgroundImage = `url(${thumb})`;
-                placeholder.style.backgroundSize = 'cover';
-            } catch (e) { console.log("Thumb fail"); }
+                const text = await navigator.clipboard.readText();
+                document.getElementById('targetUrl').value = text;
+            } catch(e) { alert("Izinkan akses clipboard!"); }
+        }
 
-            placeholder.onclick = () => {
-                videoArea.innerHTML = `<video id="${playerId}" class="w-full h-full" controls playsinline></video>`;
-                const videoEl = document.getElementById(playerId);
-                if (isHLS) {
-                    const hls = new Hls();
-                    hls.loadSource(videoSrc);
-                    hls.attachMedia(videoEl);
-                    hlsInstances.push(hls);
-                } else {
-                    videoEl.src = videoSrc;
-                }
-                videoEl.play();
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text);
+            if(btn) { 
+                const old = btn.innerHTML; btn.innerHTML = "COPIED!"; 
+                setTimeout(() => btn.innerHTML = old, 1500);
+            }
+        }
+
+        function copyJson(btn) { copyToClipboard(document.getElementById('resJson').textContent, btn); }
+
+        function clearAll() {
+            document.getElementById('targetUrl').value = '';
+            document.getElementById('resultWrapper').classList.add('hidden');
+            hlsInstances.forEach(h => h.destroy()); hlsInstances = [];
+        }
+
+        /* ==================================================
+           MODAL TERMINAL
+        ================================================== */
+        function initModalEvents() {
+            const m = document.getElementById("commandModal");
+            const btn = document.getElementById("openModalBtn");
+            if (['localhost', '127.0.0.1'].includes(window.location.hostname)) btn.classList.remove("hidden");
+            btn.onclick = () => m.style.display = "flex";
+            document.getElementById("closeModalBtn").onclick = () => m.style.display = "none";
+            document.getElementById("clearBtn").onclick = () => { document.getElementById("output").textContent = ""; };
+            document.getElementById("runBtn").onclick = async () => {
+                const cmd = document.getElementById("cmdInput").value;
+                const out = document.getElementById("output");
+                out.textContent = "Processing...";
+                try {
+                    const r = await fetch("/api/command", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cmd }) });
+                    const d = await r.json(); out.textContent = d.output || d.error;
+                } catch(e) { out.textContent = "Error connecting to server."; }
             };
-        })();
-    });
-}
-
-/* ==================================================
-   HISTORY SYSTEM
-================================================== */
-function renderHistory(filter = 'twitter') {
-    currentHistoryTab = filter;
-    const tabs = ['facebook', 'twitter', 'tiktok'];
-    tabs.forEach(t => {
-        const btn = document.getElementById(`tab-${t}`);
-        if(btn) btn.className = t === filter ? "flex-1 py-3 rounded-xl text-sm font-semibold bg-blue-600 text-white" : "flex-1 py-3 rounded-xl text-sm font-semibold bg-slate-800 text-slate-400";
-    });
-
-    const list = document.getElementById('historyList');
-    let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-    history = history.filter(item => {
-        const host = item.url.toLowerCase();
-        if (filter === 'facebook') return host.includes('facebook.com') || host.includes('fb.com');
-        if (filter === 'twitter') return host.includes('twitter.com') || host.includes('x.com');
-        if (filter === 'tiktok') return host.includes('tiktok.com');
-        return false;
-    });
-
-    if (history.length === 0) {
-        list.innerHTML = `<p class="text-center text-slate-500 mt-10">Kosong</p>`;
-        return;
-    }
-
-    list.innerHTML = history.map(item => `
-        <div class="bg-black/30 p-4 rounded-xl border border-white/5">
-            <div class="text-[10px] text-slate-500 mb-1">${item.date}</div>
-            <div class="text-sm font-bold text-slate-200 truncate">${item.title}</div>
-            <div class="flex gap-2 mt-2">
-                <a href="${item.url}" target="_blank" class="text-[10px] text-blue-400 truncate flex-1">${item.url}</a>
-                <button onclick="deleteHistory(${item.id})" class="text-red-500 text-[10px] font-bold">HAPUS</button>
-            </div>
-        </div>`).join('');
-}
-
-function saveToHistory(url, title, media) {
-    let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-    const newItem = { id: Date.now(), url, title, media, date: new Date().toLocaleString('id-ID'), isNew: true };
-    history.unshift(newItem);
-    localStorage.setItem('scrapeHistory', JSON.stringify(history.slice(0, 50)));
-    updateHistoryBadge();
-}
-
-function deleteHistory(id) {
-    let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-    history = history.filter(h => h.id !== id);
-    localStorage.setItem('scrapeHistory', JSON.stringify(history));
-    renderHistory(currentHistoryTab);
-    updateHistoryBadge();
-}
-
-function updateHistoryBadge() {
-    const history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-    const count = history.filter(h => h.isNew).length;
-    const badge = document.getElementById('badgeContainerMain');
-    badge.innerHTML = count > 0 ? `<span class="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-black"></span>` : '';
-}
-
-/* ==================================================
-   HELPER UTILS
-================================================== */
-function generateThumbnail(videoUrl) {
-    return new Promise((resolve, reject) => {
-        const video = document.createElement('video');
-        video.src = videoUrl;
-        video.crossOrigin = 'anonymous';
-        video.currentTime = 1;
-        video.onloadeddata = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            resolve(canvas.toDataURL());
-        };
-        video.onerror = reject;
-    });
-}
-
-async function pasteFromClipboard() {
-    try {
-        const text = await navigator.clipboard.readText();
-        document.getElementById('targetUrl').value = text;
-    } catch (e) { alert("Izinkan akses clipboard!"); }
-}
-
-function copyToClipboard(text, btn) {
-    navigator.clipboard.writeText(text);
-    if(btn) {
-        const old = btn.innerText;
-        btn.innerText = "COPIED!";
-        setTimeout(() => btn.innerText = old, 1500);
-    }
-}
-
-function copyJson(btn) {
-    copyToClipboard(document.getElementById('resJson').textContent, btn);
-}
-
-function clearAll() {
-    document.getElementById('targetUrl').value = '';
-    document.getElementById('resultWrapper').classList.add('hidden');
-    hlsInstances.forEach(h => h.destroy());
-    hlsInstances = [];
-}
-
-/* ==================================================
-   MODAL & TERMINAL
-================================================== */
-function initModalEvents() {
-    const modal = document.getElementById("commandModal");
-    const openBtn = document.getElementById("openModalBtn");
-    const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    
-    if (isLocal && openBtn) openBtn.classList.remove("hidden");
-    
-    if(openBtn) openBtn.onclick = () => modal.style.display = "flex";
-    document.getElementById("closeModalBtn").onclick = () => modal.style.display = "none";
-    document.getElementById("runBtn").onclick = async () => {
-        const cmd = document.getElementById("cmdInput").value;
-        const out = document.getElementById("output");
-        out.textContent = "Processing...";
-        try {
-            const r = await fetch("/api/command", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cmd }) });
-            const d = await r.json();
-            out.textContent = d.output || d.error;
-        } catch (e) { out.textContent = "Server Error"; }
-    };
-}
-
+        }
     </script>
 </body>
-    
 </html>
