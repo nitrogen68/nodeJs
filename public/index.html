@@ -340,70 +340,91 @@ function renderSingleVideo(data, targetUrl) {
 
 
         function getDomainCategory(urlStr) {
-        try {
-            const hostname = new URL(urlStr).hostname.toLowerCase();
-            if (hostname.includes('facebook.com') || hostname.includes('fb.com')) return 'Facebook';
-            if (hostname.includes('twitter.com') || hostname.includes('x.com')) return 'Twitter';
-            if (hostname.includes('tiktok.com')) return 'Tiktok';
-            return 'Media';
-        } catch { return 'Media'; }
-    }
+    try {
+        const hostname = new URL(urlStr).hostname.toLowerCase();
+        if (hostname.includes('facebook.com') || hostname.includes('fb.com')) return 'facebook'; // Pakai huruf kecil
+        if (hostname.includes('twitter.com') || hostname.includes('x.com')) return 'twitter';   // Pakai huruf kecil
+        if (hostname.includes('tiktok.com')) return 'tiktok';                                   // Pakai huruf kecil
+        return 'media';
+    } catch { return 'media'; }
+}
+
 
         function renderHistory(filter = 'twitter') {
-            currentHistoryTab = filter;
-            const tabs = ['facebook', 'twitter', 'tiktok'];
-            tabs.forEach(t => {
-                const btn = document.getElementById(`tab-${t}`);
-                if (btn) btn.className = t === filter ? "flex-1 py-3 rounded-xl text-sm font-semibold bg-blue-600 text-white" : "flex-1 py-3 rounded-xl text-sm font-semibold bg-slate-800 text-slate-400";
-            });
-
-            const list = document.getElementById('historyList');
-            let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-            history = history.filter(item => getDomainCategory(item.url) === filter);
-            
-            if (history.length === 0) {
-                list.innerHTML = `<p class="text-center text-slate-500 mt-10">Belum ada riwayat.</p>`;
-                return;
-            }
-
-            list.innerHTML = history.slice(0, 50).map(item => {
-                const domainCat = getDomainCategory(item.url);
-                const domainIcon = getDomainIcon(domainCat);
-                const copyStr = encodeURIComponent([item.title, ...item.media].join('\n'));
-
-                return `
-                <div class="bg-black/30 p-4 rounded-xl border ${item.isNew ? 'border-red-500/60 shadow-lg' : 'border-white/5'} relative hover:border-white/10 transition-colors">
-                    <div class="absolute top-3 right-3 flex gap-2">
-                        <button onclick="copyToClipboard(decodeURIComponent('${copyStr}'), this)" class="text-slate-400 hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></button>
-                        <button onclick="deleteHistory(${item.id})" class="text-slate-500 hover:text-red-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-                    </div>
-                    <div class="flex items-center gap-2 mb-2">
-                        ${domainIcon} <span class="text-[10px] text-slate-500 font-mono">${item.date}</span>
-                    </div>
-                    <div class="font-bold text-sm text-slate-200 line-clamp-1 pr-12">${item.title}</div>
-                    <div class="flex flex-wrap gap-2 mt-3">
-                        ${item.media.map((u, i) => `<a href="${u}" target="_blank" class="text-[10px] font-bold bg-slate-800 text-blue-400 px-2 py-1 rounded border border-white/5">Media ${i+1}</a>`).join('')}
-                    </div>
-                </div>`;
-            }).join('');
+    currentHistoryTab = filter;
+    
+    // Update UI Tab Active
+    ['facebook', 'twitter', 'tiktok'].forEach(t => {
+        const btn = document.getElementById(`tab-${t}`);
+        if (btn) {
+            btn.className = (t === filter) 
+                ? "flex-1 py-3 rounded-xl text-sm font-semibold bg-blue-600 text-white" 
+                : "flex-1 py-3 rounded-xl text-sm font-semibold bg-slate-800 text-slate-400";
         }
+    });
 
-       
-        
-        function saveToHistory(url, title, media) {
-        let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-        const platform = getDomainCategory(url);
-        const newItem = { 
-            id: Date.now(), 
-            url, 
-            title: `${platform}: ${title}`, 
-            media, 
-            date: new Date().toLocaleString(), 
-            isNew: true 
-        };
-        history.unshift(newItem);
-        localStorage.setItem('scrapeHistory', JSON.stringify(history.slice(0, 50)));
+    const list = document.getElementById('historyList');
+    let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+    
+    // Filter berdasarkan kategori (Sekarang aman karena keduanya huruf kecil)
+    const filteredHistory = history.filter(item => getDomainCategory(item.url) === filter);
+    
+    if (filteredHistory.length === 0) {
+        list.innerHTML = `<p class="text-center text-slate-500 mt-10">Belum ada riwayat untuk ${filter}.</p>`;
+        return;
     }
+
+    list.innerHTML = filteredHistory.map(item => {
+        const copyStr = encodeURIComponent(`${item.title}\n${item.media.join('\n')}`);
+        return `
+        <div class="bg-black/30 p-4 rounded-xl border ${item.isNew ? 'border-blue-500/40 shadow-lg' : 'border-white/5'} relative hover:border-white/10 transition-colors mb-2">
+            <div class="absolute top-3 right-3 flex gap-2">
+                <button onclick="copyToClipboard(decodeURIComponent('${copyStr}'), this)" class="text-slate-400 hover:text-white">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                </button>
+                <button onclick="deleteHistory(${item.id})" class="text-slate-500 hover:text-red-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </div>
+            <div class="flex items-center gap-2 mb-2">
+                <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded uppercase font-bold">${getDomainCategory(item.url)}</span>
+                <span class="text-[10px] text-slate-500 font-mono">${item.date}</span>
+            </div>
+            <div class="font-bold text-sm text-slate-200 line-clamp-1 pr-12">${item.title}</div>
+            <div class="flex flex-wrap gap-2 mt-3">
+                ${item.media.map((u, i) => `<a href="${u}" target="_blank" class="text-[10px] font-bold bg-blue-900/30 text-blue-400 px-2 py-1 rounded border border-blue-500/20">Buka Link Media</a>`).join('')}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+
+
+        
+        
+function saveToHistory(url, title, media) {
+    if (!media || media.length === 0) return; // Jangan simpan jika link media kosong
+
+    let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+    const platform = getDomainCategory(url);
+    
+    const newItem = { 
+        id: Date.now(), 
+        url: url, 
+        title: title, // Simpan title asli saja, kategori nanti ditambah di UI
+        media: media, 
+        date: new Date().toLocaleString('id-ID'), 
+        isNew: true 
+    };
+
+    history.unshift(newItem);
+    // Batasi history maksimal 50 item
+    localStorage.setItem('scrapeHistory', JSON.stringify(history.slice(0, 50)));
+    
+    // Update badge secara real-time
+    updateHistoryBadge();
+}
+
 
         function deleteHistory(id) {
             let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
