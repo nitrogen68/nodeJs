@@ -30,18 +30,19 @@
     /* Pastikan badge container memiliki posisi relatif */
 #mainTab-history { position: relative; }
 
-.notification-badge {
-    position: absolute;
-    top: 6px;
-    right: 12px;
-    width: 10px;
-    height: 10px;
-    background-color: #ef4444; /* Merah */
-    border-radius: 50%;
-    border: 2px solid #0f172a;
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
-    z-index: 50;
-}
+
+          
+        .notification-badge {
+        position: absolute;
+        top: 4px;
+        right: 8px;
+        width: 10px;
+        height: 10px;
+        background-color: #ef4444;
+        border-radius: 50%;
+        border: 2px solid #0f172a;
+        z-index: 50;
+    }
 
     </style>
 </head>
@@ -172,10 +173,9 @@
         let currentHistoryTab = 'twitter';
 
         function initApp() {
-            renderHistory('twitter');
-            updateHistoryBadge();
-            initModalEvents();
-        }
+        renderHistory('twitter');
+        updateHistoryBadge();
+    }
 
         /* ==================================================
            TAB SYSTEM
@@ -279,12 +279,15 @@
             } catch { return 'other'; }
         }
 
-        function getDomainIcon(category) {
-            if (category === 'facebook') return `<svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/></svg>`;
-            if (category === 'twitter') return `<svg class="w-4 h-4 text-slate-200" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
-            if (category === 'tiktok') return `<svg class="w-4 h-4 text-pink-500" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/></svg>`;
-            return `<svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>`;
-        }
+        function getDomainCategory(urlStr) {
+        try {
+            const hostname = new URL(urlStr).hostname.toLowerCase();
+            if (hostname.includes('facebook.com') || hostname.includes('fb.com')) return 'Facebook';
+            if (hostname.includes('twitter.com') || hostname.includes('x.com')) return 'Twitter';
+            if (hostname.includes('tiktok.com')) return 'Tiktok';
+            return 'Media';
+        } catch { return 'Media'; }
+    }
 
         function renderHistory(filter = 'twitter') {
             currentHistoryTab = filter;
@@ -325,13 +328,22 @@
             }).join('');
         }
 
+       
+        
         function saveToHistory(url, title, media) {
-            let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-            const newItem = { id: Date.now(), url, title, media, date: new Date().toLocaleString('id-ID'), isNew: true };
-            history.unshift(newItem);
-            localStorage.setItem('scrapeHistory', JSON.stringify(history.slice(0, 50)));
-            updateHistoryBadge();
-        }
+        let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+        const platform = getDomainCategory(url);
+        const newItem = { 
+            id: Date.now(), 
+            url, 
+            title: `${platform}: ${title}`, 
+            media, 
+            date: new Date().toLocaleString(), 
+            isNew: true 
+        };
+        history.unshift(newItem);
+        localStorage.setItem('scrapeHistory', JSON.stringify(history.slice(0, 50)));
+    }
 
         function deleteHistory(id) {
             let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
@@ -341,80 +353,86 @@
         }
 
         /* --- Update Fungsi Badge --- */
-function updateHistoryBadge() {
-    const history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-    const hasNew = history.some(item => item.isNew === true);
-    const container = document.getElementById('badgeContainerMain');
-    
-    if (hasNew) {
-        container.innerHTML = `<span class="notification-badge"></span><span class="notification-badge animate-ping" style="opacity:0.6"></span>`;
-    } else {
-        container.innerHTML = '';
+/* --- LOGIKA BADGE (SEMBUH) --- */
+    function updateHistoryBadge() {
+        const history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+        const hasNew = history.some(item => item.isNew === true);
+        const container = document.getElementById('badgeContainerMain');
+        
+        if (hasNew) {
+            container.innerHTML = `<span class="notification-badge"></span><span class="notification-badge animate-ping" style="opacity:0.6"></span>`;
+        } else {
+            container.innerHTML = '';
+        }
     }
-}
 
 /* --- Update Fungsi Render Video (Result) --- */
-function renderVideos(data, targetUrl) {
-    const container = document.getElementById('dynamicVideosContainer');
-    container.innerHTML = '';
-    container.classList.remove('hidden');
 
-    const platform = getDomainCategory(targetUrl);
-    const capitalizedPlatform = platform.charAt(0).toUpperCase() + platform.slice(1);
-    
-    // Format: "Facebook: Nama" atau "Twitter: Video"
-    const displayTitle = `${capitalizedPlatform}: ${data.title}`;
+    /* --- FORMAT RESULT & RENDER --- */
+    function renderVideos(data, targetUrl) {
+        const container = document.getElementById('dynamicVideosContainer');
+        container.innerHTML = '';
+        container.classList.remove('hidden');
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'bg-slate-900/80 rounded-[2rem] overflow-hidden border border-white/10 shadow-xl';
-    wrapper.innerHTML = `
-        <div class="p-6">
-            <h3 class="text-blue-400 font-bold mb-2">${displayTitle}</h3>
-            <div class="bg-black/50 p-4 rounded-xl border border-white/5 mb-4">
-                <a href="${data.videyUrl}" target="_blank" class="text-emerald-400 font-mono text-sm break-all">${data.videyUrl}</a>
+        const platform = getDomainCategory(targetUrl);
+        const displayTitle = `${platform}: ${data.title}`;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'bg-slate-900/80 rounded-[2rem] overflow-hidden border border-white/10 shadow-xl p-6';
+        wrapper.innerHTML = `
+            <div class="mb-4">
+                <h3 class="text-blue-400 font-bold text-lg mb-2">${displayTitle}</h3>
+                <div class="bg-black/50 p-4 rounded-xl border border-white/5 break-all">
+                    <a href="${data.videyUrl}" target="_blank" class="text-emerald-400 font-mono text-sm">${data.videyUrl}</a>
+                </div>
             </div>
-            <div class="aspect-video rounded-xl overflow-hidden bg-black mb-4">
+            <div class="aspect-video bg-black rounded-xl overflow-hidden mb-4">
                 <video src="${data.videyUrl.replace('v/?id=', '')}.mp4" controls class="w-full h-full"></video>
             </div>
-            <button onclick="copyToClipboard('${data.videyUrl}', this)" class="w-full bg-blue-600 py-3 rounded-xl font-bold text-white">COPY VIDEY LINK</button>
-        </div>
-    `;
-    container.appendChild(wrapper);
-}
-
-/* --- Update Form Submit --- */
-document.getElementById('scrape-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const urlInput = document.getElementById('targetUrl');
-    const loading = document.getElementById('loading');
-    const resultWrapper = document.getElementById('resultWrapper');
-    
-    loading.classList.remove('hidden');
-    resultWrapper.classList.add('hidden');
-
-    try {
-        const response = await fetch('/api/download', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: urlInput.value })
-        });
-        const res = await response.json();
-
-        if (res.success) {
-            renderVideos(res.data, urlInput.value);
-            saveToHistory(urlInput.value, res.data.title, [res.data.videyUrl]);
-            document.getElementById('resJson').textContent = JSON.stringify(res, null, 4);
-        } else {
-            alert("Error: " + res.error);
-        }
-    } catch (e) {
-        alert("Server Error");
-    } finally {
-        loading.classList.add('hidden');
-        resultWrapper.classList.remove('hidden');
-        updateHistoryBadge();
+            <button onclick="copyToClipboard('${data.videyUrl}', this)" class="w-full bg-blue-600 py-4 rounded-xl font-bold text-white active:scale-95 transition-all">
+                📋 SALIN LINK VIDEY
+            </button>
+        `;
+        container.appendChild(wrapper);
     }
-});
+
+        
+/* --- Update Form Submit --- */
+
+    /* --- FORM HANDLER --- */
+    document.getElementById('scrape-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const urlInput = document.getElementById('targetUrl');
+        const loading = document.getElementById('loading');
+        const resultWrapper = document.getElementById('resultWrapper');
+        
+        loading.classList.remove('hidden');
+        resultWrapper.classList.add('hidden');
+
+        try {
+            const response = await fetch('/api/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: urlInput.value })
+            });
+            const res = await response.json();
+
+            if (res.success) {
+                renderVideos(res.data, urlInput.value);
+                saveToHistory(urlInput.value, res.data.title, [res.data.videyUrl]);
+                document.getElementById('resJson').textContent = JSON.stringify(res, null, 4);
+                resultWrapper.classList.remove('hidden');
+            } else {
+                alert("Gagal: " + res.error);
+            }
+        } catch (e) {
+            alert("Terjadi kesalahan server");
+        } finally {
+            loading.classList.add('hidden');
+            updateHistoryBadge();
+        }
+    });
+
 
         
 
