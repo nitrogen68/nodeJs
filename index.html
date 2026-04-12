@@ -159,146 +159,293 @@
     </div>
 
     <script>
-        /* --- INTEGRASI JS --- */
-        let statusTimers = [];
-        let hlsInstances = [];
-        let currentHistoryTab = 'twitter';
-        let selectedFile = null;
+        /* ==================================================
+   KONFIGURASI & STATE GLOBAL
+================================================== */
+let hlsInstances = [];
+let currentHistoryTab = 'twitter';
+let selectedFile = null;
 
-        function initApp() {
-            renderHistory('twitter');
-            updateHistoryBadge();
-            initModalEvents();
-        }
+function initApp() {
+    renderHistory('twitter');
+    updateHistoryBadge();
+    initModalEvents();
+}
 
-        /* TABS LOGIC */
-        function switchMainTab(tabId) {
-            const tabDownloaderBtn = document.getElementById('mainTab-downloader');
-            const tabHistoryBtn = document.getElementById('mainTab-history');
-            const sectionDownloader = document.getElementById('section-downloader');
-            const sectionHistory = document.getElementById('section-history');
+/* ==================================================
+   LOGIKA TAB & UI
+================================================== */
+function switchMainTab(tabId) {
+    const tabDownloaderBtn = document.getElementById('mainTab-downloader');
+    const tabHistoryBtn = document.getElementById('mainTab-history');
+    const sectionDownloader = document.getElementById('section-downloader');
+    const sectionHistory = document.getElementById('section-history');
 
-            if (tabId === 'downloader') {
-                sectionDownloader.classList.remove('hidden');
-                sectionHistory.classList.add('hidden');
-                tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-blue-600 text-white";
-                tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800 relative";
-            } else {
-                sectionDownloader.classList.add('hidden');
-                sectionHistory.classList.remove('hidden');
-                tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-blue-600 text-white relative";
-                tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800";
-                renderHistory(currentHistoryTab);
-            }
-        }
+    if (tabId === 'downloader') {
+        sectionDownloader.classList.remove('hidden');
+        sectionHistory.classList.add('hidden');
+        tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-blue-600 text-white";
+        tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800 relative";
+    } else {
+        sectionDownloader.classList.add('hidden');
+        sectionHistory.classList.remove('hidden');
+        tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-blue-600 text-white relative";
+        tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800";
+        renderHistory(currentHistoryTab);
+    }
+}
 
-        /* SCRAPING LOGIC */
-        document.getElementById('scrape-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const urlInput = document.getElementById('targetUrl');
-            const btnSubmit = document.getElementById('btnSubmit');
-            const loading = document.getElementById('loading');
-            const resultWrapper = document.getElementById('resultWrapper');
-            const resultArea = document.getElementById('result');
-            const progressBar = document.getElementById('progressBar');
-            const progressContainer = document.getElementById('progressContainer');
-            const videoContainer = document.getElementById('dynamicVideosContainer');
-            const jsonEl = document.getElementById('resJson');
+/* ==================================================
+   CORE: EKSTRAKSI & RENDER VIDEO
+================================================== */
+document.getElementById('scrape-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const urlInput = document.getElementById('targetUrl');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const loading = document.getElementById('loading');
+    const resultWrapper = document.getElementById('resultWrapper');
+    const resultArea = document.getElementById('result');
+    const progressBar = document.getElementById('progressBar');
+    const progressContainer = document.getElementById('progressContainer');
+    const videoContainer = document.getElementById('dynamicVideosContainer');
+    const jsonEl = document.getElementById('resJson');
 
-            let url = urlInput.value.trim();
-            if (!url) return;
+    let url = urlInput.value.trim();
+    if (!url) return;
 
-            // UI Reset
-            btnSubmit.disabled = true;
-            loading.classList.remove('hidden');
-            resultWrapper.classList.add('hidden');
-            progressContainer.classList.remove('hidden');
-            progressBar.style.width = '10%';
-            videoContainer.innerHTML = '';
-            resultArea.innerHTML = '';
+    btnSubmit.disabled = true;
+    loading.classList.remove('hidden');
+    resultWrapper.classList.add('hidden');
+    progressContainer.classList.remove('hidden');
+    progressBar.style.width = '20%';
+    videoContainer.innerHTML = '';
+    resultArea.innerHTML = '';
 
-            try {
-                // Fetch to backend
-                const response = await fetch('/api/download', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url })
-                });
-                
-                const data = await response.json();
-                progressBar.style.width = '100%';
-
-                if (data.success && data.data?.media?.length > 0) {
-                    const videoUrls = data.data.media.map(m => m.url);
-                    const title = data.data.description || "Video Media";
-                    
-                    renderVideos(videoUrls, title);
-                    saveToHistory(url, title, videoUrls);
-                    
-                    jsonEl.textContent = JSON.stringify(data, null, 4);
-                } else {
-                    resultArea.innerHTML = `<p class="text-red-400 text-center font-bold">⚠️ Gagal: ${data.error || 'Media tidak ditemukan'}</p>`;
-                }
-                resultWrapper.classList.remove('hidden');
-            } catch (err) {
-                resultArea.innerHTML = `<p class="text-red-400 text-center font-bold">❌ Error: ${err.message}</p>`;
-                resultWrapper.classList.remove('hidden');
-            } finally {
-                loading.classList.add('hidden');
-                btnSubmit.disabled = false;
-                setTimeout(() => progressContainer.classList.add('hidden'), 1000);
-            }
+    try {
+        const response = await fetch('/api/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
         });
+        
+        const data = await response.json();
+        progressBar.style.width = '100%';
 
-        /* HISTORY & UTILS */
-        function saveToHistory(url, title, media) {
-            let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-            const newItem = { id: Date.now(), url, title, media, date: new Date().toLocaleString('id-ID'), isNew: true };
-            history.unshift(newItem);
-            localStorage.setItem('scrapeHistory', JSON.stringify(history.slice(0, 50)));
-            updateHistoryBadge();
-        }
-
-        function updateHistoryBadge() {
-            const history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-            const count = history.filter(h => h.isNew).length;
-            document.getElementById('badgeContainerMain').innerHTML = count > 0 ? `<span class="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-black"></span>` : '';
-        }
-
-        async function pasteFromClipboard() {
-            const text = await navigator.clipboard.readText();
-            document.getElementById('targetUrl').value = text;
-        }
-
-        function copyJson(btn) {
-            navigator.clipboard.writeText(document.getElementById('resJson').textContent);
-            btn.innerHTML = "COPIED!";
-            setTimeout(() => btn.innerHTML = "COPY LOGS", 2000);
-        }
-
-        function clearAll() {
-            document.getElementById('targetUrl').value = '';
-            document.getElementById('resultWrapper').classList.add('hidden');
-        }
-
-        /* MODAL TERMINAL */
-        function initModalEvents() {
-            const modal = document.getElementById("commandModal");
-            const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+        if (data.success && data.data?.media?.length > 0) {
+            const videoUrls = data.data.media.map(m => m.url);
+            const title = data.data.description || "Video Media";
             
-            if (isLocal) document.getElementById("openModalBtn").classList.remove("hidden");
+            // Panggil fungsi yang tadi hilang
+            renderVideos(videoUrls, title);
+            saveToHistory(url, title, videoUrls);
             
-            document.getElementById("openModalBtn").onclick = () => modal.style.display = "flex";
-            document.getElementById("closeModalBtn").onclick = () => modal.style.display = "none";
-            document.getElementById("runBtn").onclick = async () => {
-                const cmd = document.getElementById("cmdInput").value;
-                const output = document.getElementById("output");
-                output.textContent = "Running...";
-                const res = await fetch("/api/command", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cmd }) });
-                const data = await res.json();
-                output.textContent = data.output || data.error;
+            jsonEl.textContent = JSON.stringify(data, null, 4);
+        } else {
+            resultArea.innerHTML = `<p class="text-red-400 text-center font-bold">⚠️ Gagal: ${data.error || 'Media tidak ditemukan'}</p>`;
+        }
+        resultWrapper.classList.remove('hidden');
+    } catch (err) {
+        resultArea.innerHTML = `<p class="text-red-400 text-center font-bold">❌ Error: ${err.message}</p>`;
+        resultWrapper.classList.remove('hidden');
+    } finally {
+        loading.classList.add('hidden');
+        btnSubmit.disabled = false;
+        setTimeout(() => progressContainer.classList.add('hidden'), 1000);
+    }
+});
+
+function renderVideos(urls, pageTitle = '') {
+    const container = document.getElementById('dynamicVideosContainer');
+    container.innerHTML = '';
+    container.classList.remove('hidden');
+
+    urls.forEach((url, index) => {
+        (async () => {
+            let videoSrc = url;
+            const isVidey = url.includes('videy.co');
+            if (isVidey) {
+                const videyId = url.match(/[?&]id=([^&]+)/)?.[1] || '';
+                if (videyId) videoSrc = `https://cdn.videy.co/${videyId}.mp4`;
+            }
+            
+            const isHLS = videoSrc.includes('.m3u8');
+            const placeholderId = `placeholder_${index}`;
+            const playerId = `player_${index}`;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'bg-slate-900/80 rounded-[2rem] overflow-hidden border border-white/10 shadow-xl mb-6';
+            wrapper.innerHTML = `
+                <div class="p-5 border-b border-white/5 bg-black/20 flex justify-between items-center">
+                    <span class="font-bold text-white text-sm">Media ${index + 1}</span>
+                    <button onclick="copyToClipboard('${url}', this)" class="text-[10px] bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">COPY LINK</button>
+                </div>
+                <div class="aspect-video bg-black relative" id="videoArea_${index}">
+                    <div id="${placeholderId}" class="w-full h-full flex items-center justify-center cursor-pointer">
+                        <div class="play-icon"></div>
+                    </div>
+                </div>`;
+            
+            container.appendChild(wrapper);
+
+            const placeholder = document.getElementById(placeholderId);
+            const videoArea = document.getElementById(`videoArea_${index}`);
+
+            // Coba generate thumbnail
+            try {
+                const thumb = await generateThumbnail(videoSrc);
+                placeholder.style.backgroundImage = `url(${thumb})`;
+                placeholder.style.backgroundSize = 'cover';
+            } catch (e) { console.log("Thumb fail"); }
+
+            placeholder.onclick = () => {
+                videoArea.innerHTML = `<video id="${playerId}" class="w-full h-full" controls playsinline></video>`;
+                const videoEl = document.getElementById(playerId);
+                if (isHLS) {
+                    const hls = new Hls();
+                    hls.loadSource(videoSrc);
+                    hls.attachMedia(videoEl);
+                    hlsInstances.push(hls);
+                } else {
+                    videoEl.src = videoSrc;
+                }
+                videoEl.play();
             };
-        }
+        })();
+    });
+}
+
+/* ==================================================
+   HISTORY SYSTEM
+================================================== */
+function renderHistory(filter = 'twitter') {
+    currentHistoryTab = filter;
+    const tabs = ['facebook', 'twitter', 'tiktok'];
+    tabs.forEach(t => {
+        const btn = document.getElementById(`tab-${t}`);
+        if(btn) btn.className = t === filter ? "flex-1 py-3 rounded-xl text-sm font-semibold bg-blue-600 text-white" : "flex-1 py-3 rounded-xl text-sm font-semibold bg-slate-800 text-slate-400";
+    });
+
+    const list = document.getElementById('historyList');
+    let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+    history = history.filter(item => {
+        const host = item.url.toLowerCase();
+        if (filter === 'facebook') return host.includes('facebook.com') || host.includes('fb.com');
+        if (filter === 'twitter') return host.includes('twitter.com') || host.includes('x.com');
+        if (filter === 'tiktok') return host.includes('tiktok.com');
+        return false;
+    });
+
+    if (history.length === 0) {
+        list.innerHTML = `<p class="text-center text-slate-500 mt-10">Kosong</p>`;
+        return;
+    }
+
+    list.innerHTML = history.map(item => `
+        <div class="bg-black/30 p-4 rounded-xl border border-white/5">
+            <div class="text-[10px] text-slate-500 mb-1">${item.date}</div>
+            <div class="text-sm font-bold text-slate-200 truncate">${item.title}</div>
+            <div class="flex gap-2 mt-2">
+                <a href="${item.url}" target="_blank" class="text-[10px] text-blue-400 truncate flex-1">${item.url}</a>
+                <button onclick="deleteHistory(${item.id})" class="text-red-500 text-[10px] font-bold">HAPUS</button>
+            </div>
+        </div>`).join('');
+}
+
+function saveToHistory(url, title, media) {
+    let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+    const newItem = { id: Date.now(), url, title, media, date: new Date().toLocaleString('id-ID'), isNew: true };
+    history.unshift(newItem);
+    localStorage.setItem('scrapeHistory', JSON.stringify(history.slice(0, 50)));
+    updateHistoryBadge();
+}
+
+function deleteHistory(id) {
+    let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+    history = history.filter(h => h.id !== id);
+    localStorage.setItem('scrapeHistory', JSON.stringify(history));
+    renderHistory(currentHistoryTab);
+    updateHistoryBadge();
+}
+
+function updateHistoryBadge() {
+    const history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+    const count = history.filter(h => h.isNew).length;
+    const badge = document.getElementById('badgeContainerMain');
+    badge.innerHTML = count > 0 ? `<span class="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-black"></span>` : '';
+}
+
+/* ==================================================
+   HELPER UTILS
+================================================== */
+function generateThumbnail(videoUrl) {
+    return new Promise((resolve, reject) => {
+        const video = document.createElement('video');
+        video.src = videoUrl;
+        video.crossOrigin = 'anonymous';
+        video.currentTime = 1;
+        video.onloadeddata = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            resolve(canvas.toDataURL());
+        };
+        video.onerror = reject;
+    });
+}
+
+async function pasteFromClipboard() {
+    try {
+        const text = await navigator.clipboard.readText();
+        document.getElementById('targetUrl').value = text;
+    } catch (e) { alert("Izinkan akses clipboard!"); }
+}
+
+function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text);
+    if(btn) {
+        const old = btn.innerText;
+        btn.innerText = "COPIED!";
+        setTimeout(() => btn.innerText = old, 1500);
+    }
+}
+
+function copyJson(btn) {
+    copyToClipboard(document.getElementById('resJson').textContent, btn);
+}
+
+function clearAll() {
+    document.getElementById('targetUrl').value = '';
+    document.getElementById('resultWrapper').classList.add('hidden');
+    hlsInstances.forEach(h => h.destroy());
+    hlsInstances = [];
+}
+
+/* ==================================================
+   MODAL & TERMINAL
+================================================== */
+function initModalEvents() {
+    const modal = document.getElementById("commandModal");
+    const openBtn = document.getElementById("openModalBtn");
+    const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    
+    if (isLocal && openBtn) openBtn.classList.remove("hidden");
+    
+    if(openBtn) openBtn.onclick = () => modal.style.display = "flex";
+    document.getElementById("closeModalBtn").onclick = () => modal.style.display = "none";
+    document.getElementById("runBtn").onclick = async () => {
+        const cmd = document.getElementById("cmdInput").value;
+        const out = document.getElementById("output");
+        out.textContent = "Processing...";
+        try {
+            const r = await fetch("/api/command", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cmd }) });
+            const d = await r.json();
+            out.textContent = d.output || d.error;
+        } catch (e) { out.textContent = "Server Error"; }
+    };
+}
+
     </script>
 </body>
+    
 </html>
