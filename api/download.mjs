@@ -1,66 +1,26 @@
 // api/download.mjs
 import { snapsave } from "snapsave-media-downloader";
 import FormData from "form-data";
+import { execSync } from "child_process";
+import fs from "fs";
 
-// ============================================
-// HELPER: Upload Video ke Videy.co
-// ============================================
-async function uploadToVidey(videoUrl) {
-  console.log("📤 [Videy] Upload started:", videoUrl);
+async function uploadToVidey(filePath){
 
-  try {
-    const video = await fetch(videoUrl);
+  const cmd = `
+  curl -X POST https://videy.co/api/upload \
+  -H "Origin: https://videy.co" \
+  -H "Referer: https://videy.co/" \
+  -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+  -F "file=@${filePath};type=video/mp4"
+  `;
 
-    if (!video.ok) {
-      throw new Error("Video fetch gagal");
-    }
+  const result = execSync(cmd).toString();
 
-    const buffer = Buffer.from(await video.arrayBuffer());
+  const json = JSON.parse(result);
 
-    console.log("📦 Buffer:", buffer.length);
-
-    const form = new FormData();
-    form.append("file", buffer, {
-      filename: "video.mp4",
-      contentType: "video/mp4"
-    });
-
-    const up = await fetch("https://videy.co/api/upload", {
-      method: "POST",
-      body: form,
-      headers: {
-        ...form.getHeaders(),
-        "Origin": "https://videy.co",
-        "Referer": "https://videy.co/",
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36",
-        "Accept": "*/*"
-      }
-    });
-
-    console.log("📤 Status:", up.status);
-
-    const text = await up.text();
-
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      console.log("❌ HTML RESPONSE:");
-      console.log(text.slice(0,300));
-      return null;
-    }
-
-    console.log("📤 JSON:", json);
-
-    return json?.id
-      ? `https://videy.co/v/?id=${json.id}`
-      : null;
-
-  } catch (err) {
-    console.error("❌ Videy error:", err.message);
-    return null;
-  }
+  return json?.id
+    ? `https://videy.co/v/?id=${json.id}`
+    : null;
 }
 
 // ============================================
