@@ -7,46 +7,62 @@ import FormData from "form-data";
 // ============================================
 async function uploadToVidey(videoUrl) {
   console.log("📤 [Videy] Upload started:", videoUrl);
-  
+
   try {
-    const response = await fetch(videoUrl);
-    console.log("📥 [Videy] Fetch status:", response.status);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);
+    const video = await fetch(videoUrl);
+
+    if (!video.ok) {
+      throw new Error("Video fetch gagal");
     }
-    
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    console.log("📦 [Videy] Buffer size:", buffer.length, "bytes");
+
+    const buffer = Buffer.from(await video.arrayBuffer());
+
+    console.log("📦 Buffer:", buffer.length);
 
     const form = new FormData();
-    form.append('file', buffer, {
-      filename: 'video.mp4',
-      contentType: 'video/mp4',
+    form.append("file", buffer, {
+      filename: "video.mp4",
+      contentType: "video/mp4"
     });
 
     const up = await fetch("https://videy.co/api/upload", {
       method: "POST",
       body: form,
       headers: {
+        ...form.getHeaders(),
         "Origin": "https://videy.co",
         "Referer": "https://videy.co/",
-        ...form.getHeaders()
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36",
+        "Accept": "*/*"
       }
     });
 
-    console.log("📤 [Videy] Upload response status:", up.status);
-    const resJson = await up.json();
-    console.log("📤 [Videy] Upload response:", JSON.stringify(resJson));
-    
-    return resJson.id ? `https://videy.co/v/?id=${resJson.id}` : null;
-    
-  } catch (e) {
-    console.error("❌ [Videy] Error:", e.message);
+    console.log("📤 Status:", up.status);
+
+    const text = await up.text();
+
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      console.log("❌ HTML RESPONSE:");
+      console.log(text.slice(0,300));
+      return null;
+    }
+
+    console.log("📤 JSON:", json);
+
+    return json?.id
+      ? `https://videy.co/v/?id=${json.id}`
+      : null;
+
+  } catch (err) {
+    console.error("❌ Videy error:", err.message);
     return null;
   }
 }
+
 // ============================================
 // MAIN HANDLER - FIXED!
 // ============================================
