@@ -5,9 +5,6 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-/**
- * [UTILITY] URL Expander
- */
 async function expandUrl(url) {
   try {
     const response = await fetch(url, { method: 'HEAD', redirect: 'follow' });
@@ -15,9 +12,6 @@ async function expandUrl(url) {
   } catch (e) { return url; }
 }
 
-/**
- * [METADATA] X/Twitter OEmbed
- */
 async function getXMetadata(url) {
   try {
     const res = await fetch(`https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`);
@@ -26,9 +20,6 @@ async function getXMetadata(url) {
   } catch (e) { return null; }
 }
 
-/**
- * [METADATA] TikTok via TikWM
- */
 async function getTikTokMetadata(url) {
   try {
     const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`;
@@ -42,9 +33,6 @@ async function getTikTokMetadata(url) {
   return null;
 }
 
-/**
- * [METADATA] FB & Instagram Scraper
- */
 async function getProfileName(url) {
   try {
     const isIG = url.includes('instagram.com');
@@ -65,7 +53,7 @@ async function getProfileName(url) {
 }
 
 /**
- * [DOWNLOADER] X/Twitter via VxTwitter (Jalan Belakang)
+ * [FIXED] Menggunakan .filter() untuk mengambil SEMUA video
  */
 async function tryVxTwitter(url) {
   try {
@@ -75,15 +63,13 @@ async function tryVxTwitter(url) {
     const response = await fetch(apiUrl);
     const json = await response.json();
     if (json.mediaURLs) {
-        const video = json.mediaURLs.find(link => link.includes('.mp4'));
-        return video ? { url: video, title: `@${json.user_screen_name}` } : null;
+        // AMBIL SEMUA URL MP4
+        const videos = json.mediaURLs.filter(link => link.includes('.mp4'));
+        return videos.length > 0 ? { urls: videos, title: `@${json.user_screen_name}` } : null;
     }
   } catch (e) { return null; }
 }
 
-/**
- * [DOWNLOADER] TikTok via TikWM
- */
 async function tryTikWMVideo(url) {
   try {
     const res = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`);
@@ -92,9 +78,6 @@ async function tryTikWMVideo(url) {
   } catch (e) { return null; }
 }
 
-/**
- * [DOWNLOADER] Multi-Instance Cobalt
- */
 async function tryCobalt(url) {
   const instances = ["https://api.vxtok.com/api/json", "https://cobalt.hyonsu.com/api/json", "https://api.cobalt.tools/api/json"];
   for (const apiUrl of instances) {
@@ -111,14 +94,10 @@ async function tryCobalt(url) {
   return null;
 }
 
-/**
- * [CORE] Upload ke Videy (FIXED HEADERS)
- */
 async function uploadToVidey(remoteUrl) {
-  const tempFilePath = path.join(os.tmpdir(), `vid_${Date.now()}.mp4`);
+  const tempFilePath = path.join(os.tmpdir(), `vid_${Date.now()}_${Math.floor(Math.random() * 1000)}.mp4`);
   try {
     console.log("⏳ [Videy] Downloading from source...");
-    // Tambahkan User-Agent agar tidak kena 403 Forbidden oleh CDNs (FB/X/IG)
     const response = await fetch(remoteUrl, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
     });
@@ -129,11 +108,7 @@ async function uploadToVidey(remoteUrl) {
     fs.writeFileSync(tempFilePath, buffer);
 
     console.log("⏳ [Videy] Uploading to Videy...");
-    // Gunakan curl dengan penyamaran yang lebih baik
-    const cmd = `curl -s -X POST https://videy.co/api/upload \
-      -H "Origin: https://videy.co" \
-      -H "Referer: https://videy.co/" \
-      -F "file=@${tempFilePath};type=video/mp4"`;
+    const cmd = `curl -s -X POST https://videy.co/api/upload -H "Origin: https://videy.co" -H "Referer: https://videy.co/" -F "file=@${tempFilePath};type=video/mp4"`;
 
     const result = JSON.parse(execSync(cmd).toString());
     if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
@@ -167,52 +142,58 @@ export default async function handler(req, res) {
     else if (isX)  metadataPromise = getXMetadata(expandedUrl);
     else metadataPromise = Promise.resolve(null);
 
-    let finalVideoUrl = null;
+    let finalVideoUrls = []; // SEKARANG ARRAY
     let methodUsed = "";
     let forceTitle = null;
 
     // STEP 1: Snapsave
     try {
         const snap = await snapsave(expandedUrl);
-        if (snap?.success && snap.data?.media?.[0]?.url) {
-            finalVideoUrl = snap.data.media[0].url;
+        if (snap?.success && snap.data?.media?.length > 0) {
+            // Ambil semua URL dari Snapsave
+            finalVideoUrls = snap.data.media.map(m => m.url).filter(u => u);
             methodUsed = "Snapsave";
         }
     } catch (e) {}
 
     // STEP 2: TikWM (TikTok)
-    if (!finalVideoUrl && isTT) {
-        finalVideoUrl = await tryTikWMVideo(expandedUrl);
-        if (finalVideoUrl) methodUsed = "TikWM Engine";
+    if (finalVideoUrls.length === 0 && isTT) {
+        const ttUrl = await tryTikWMVideo(expandedUrl);
+        if (ttUrl) { finalVideoUrls = [ttUrl]; methodUsed = "TikWM Engine"; }
     }
 
     // STEP 3: VxTwitter (X)
-    if (!finalVideoUrl && isX) {
+    if (finalVideoUrls.length === 0 && isX) {
         const vx = await tryVxTwitter(expandedUrl);
-        if (vx) {
-            finalVideoUrl = vx.url;
+        if (vx && vx.urls && vx.urls.length > 0) {
+            finalVideoUrls = vx.urls; // Ambil semua array URLs
             forceTitle = vx.title;
             methodUsed = "VxTwitter Bypass";
         }
     }
 
     // STEP 4: Cobalt (Fallback Universal)
-    if (!finalVideoUrl) {
-        finalVideoUrl = await tryCobalt(expandedUrl);
-        if (finalVideoUrl) methodUsed = "Cobalt System";
+    if (finalVideoUrls.length === 0) {
+        const cobUrl = await tryCobalt(expandedUrl);
+        if (cobUrl) { finalVideoUrls = [cobUrl]; methodUsed = "Cobalt System"; }
     }
 
-    if (!finalVideoUrl) {
+    if (finalVideoUrls.length === 0) {
       return res.status(404).json({ success: false, error: "Gagal mengekstrak video dari semua metode." });
     }
 
-    // UPLOAD PROSES
-    const videyLink = await uploadToVidey(finalVideoUrl);
-    if (!videyLink) {
+    // UPLOAD PROSES (Mendukung Multi-Video)
+    const videyLinks = [];
+    for (const vUrl of finalVideoUrls) {
+        const uploadedLink = await uploadToVidey(vUrl);
+        if (uploadedLink) videyLinks.push(uploadedLink);
+    }
+
+    if (videyLinks.length === 0) {
         return res.status(500).json({ 
             success: false, 
             error: "Gagal upload ke Videy",
-            debug: { method: methodUsed, source: finalVideoUrl.substring(0, 50) + "..." }
+            debug: { method: methodUsed }
         });
     }
 
@@ -222,7 +203,11 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      data: { title: finalTitle, videyUrl: videyLink, method: methodUsed }
+      data: { 
+        title: finalTitle, 
+        videyUrls: videyLinks, // DIKIRIM SEBAGAI ARRAY
+        method: methodUsed 
+      }
     });
 
   } catch (err) {
