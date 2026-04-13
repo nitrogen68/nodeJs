@@ -86,8 +86,14 @@ async function tryMetaBypass(url, platform) {
             }
         } 
         else if (platform === 'FB') {
-            const vidUrl = json.data.hd || json.data.sd;
-            if (vidUrl) videos.push(vidUrl);
+            // Prioritaskan HD, jika gagal ambil SD
+            let vidUrl = json.data.hd || json.data.sd;
+            
+            if (vidUrl) {
+                // PERBAIKAN: Bersihkan HTML Entities &amp; menjadi & biasa
+                vidUrl = vidUrl.replace(/&amp;/g, '&');
+                videos.push(vidUrl);
+            }
             
             if (json.data.title && json.data.title.toLowerCase() !== "unknown") {
                 fetchedTitle = json.data.title.substring(0, 45) + "...";
