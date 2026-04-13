@@ -7,15 +7,12 @@ import os from "os";
 
 /**
  * [UTILITY] URL Expander
- * Menangani link pendek (share/r/, vt.tiktok, bit.ly) agar scraper mendapatkan URL asli.
  */
 async function expandUrl(url) {
   try {
     const response = await fetch(url, { method: 'HEAD', redirect: 'follow' });
     return response.url;
-  } catch (e) {
-    return url;
-  }
+  } catch (e) { return url; }
 }
 
 /**
@@ -46,7 +43,7 @@ async function getTikTokMetadata(url) {
 }
 
 /**
- * [METADATA] FB & Instagram Scraper (Improved Regex)
+ * [METADATA] FB & Instagram Scraper
  */
 async function getProfileName(url) {
   try {
@@ -55,14 +52,9 @@ async function getProfileName(url) {
     const html = await response.text();
     const ogTitle = html.match(/<meta property="og:title" content="(.*?)"/i);
     const ogDesc = html.match(/<meta property="og:description" content="(.*?)"/i);
-    
-    let cleanPool = ((ogTitle ? ogTitle[1] : "") + " " + (ogDesc ? ogDesc[1] : ""))
-                    .replace(/&quot;/g, '"').replace(/&#\w+;/g, ' ').replace(/\s+/g, ' ');
-
-    // Split berdasarkan pemisah umum dan kata hubung "pada/on/di"
+    let cleanPool = ((ogTitle ? ogTitle[1] : "") + " " + (ogDesc ? ogDesc[1] : "")).replace(/&quot;/g, '"').replace(/&#\w+;/g, ' ').replace(/\s+/g, ' ');
     const parts = cleanPool.split(/\s*\|\s*|\s*-\s*|\s*·\s*|\s+pada\s+|\s+on\s+|\s+di\s+/i).map(p => p.trim());
     const candidates = parts.filter(p => !(/\d{4}|Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Sep|Okt|Nov|Des/i.test(p)) && p.length > 2);
-    
     if (candidates.length > 0) {
         let res = isIG ? candidates[0] : candidates[candidates.length - 1];
         res = res.replace(/[":].*$/, '').replace(/[^\w\d._ ]/g, '').trim();
@@ -73,7 +65,24 @@ async function getProfileName(url) {
 }
 
 /**
- * [DOWNLOADER] TikTok Special via TikWM
+ * [DOWNLOADER] X/Twitter via VxTwitter (Jalan Belakang)
+ */
+async function tryVxTwitter(url) {
+  try {
+    const tweetIdMatch = url.match(/status\/(\d+)/);
+    if (!tweetIdMatch) return null;
+    const apiUrl = `https://api.vxtwitter.com/Twitter/status/${tweetIdMatch[1]}`;
+    const response = await fetch(apiUrl);
+    const json = await response.json();
+    if (json.mediaURLs) {
+        const video = json.mediaURLs.find(link => link.includes('.mp4'));
+        return video ? { url: video, title: `@${json.user_screen_name}` } : null;
+    }
+  } catch (e) { return null; }
+}
+
+/**
+ * [DOWNLOADER] TikTok via TikWM
  */
 async function tryTikWMVideo(url) {
   try {
@@ -84,64 +93,54 @@ async function tryTikWMVideo(url) {
 }
 
 /**
- * [DOWNLOADER] Cobalt Multi-Instance (FIXED - 2026)
+ * [DOWNLOADER] Multi-Instance Cobalt
  */
-/**
- * [X-SPECIAL] Extraction via VxTwitter API
- * Ini adalah porting dari logika PHP kamu yang berhasil.
- */
-async function tryVxTwitter(url) {
-  console.log("🔍 [X-DEBUG] Mencoba Jalur Belakang VxTwitter...");
-  try {
-    // 1. Ambil ID Tweet dari URL
-    const tweetIdMatch = url.match(/status\/(\d+)/);
-    if (!tweetIdMatch) return null;
-    const tweetId = tweetIdMatch[1];
-
-    // 2. Panggil API VxTwitter
-    const apiUrl = `https://api.vxtwitter.com/Twitter/status/${tweetId}`;
-    const response = await fetch(apiUrl, {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-        }
-    });
-
-    if (!response.ok) return null;
-    const json = await response.json();
-
-    // 3. Cari URL yang berakhiran .mp4 di dalam mediaURLs
-    if (json.mediaURLs && json.mediaURLs.length > 0) {
-        const videoUrl = json.mediaURLs.find(link => link.includes('.mp4'));
-        
-        if (videoUrl) {
-            console.log("✅ [X-DEBUG] Video ditemukan via VxTwitter!");
-            return {
-                url: videoUrl,
-                title: `@${json.user_screen_name} - ${json.text.substring(0, 30)}...`
-            };
-        }
-    }
-  } catch (e) {
-    console.error("❌ [X-DEBUG] Gagal via VxTwitter:", e.message);
+async function tryCobalt(url) {
+  const instances = ["https://api.vxtok.com/api/json", "https://cobalt.hyonsu.com/api/json", "https://api.cobalt.tools/api/json"];
+  for (const apiUrl of instances) {
+    try {
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ url, videoQuality: "720" })
+      });
+      const data = await res.json();
+      if (data?.url) return data.url;
+    } catch (e) { continue; }
   }
   return null;
 }
 
-
 /**
- * [CORE] Upload ke Videy
+ * [CORE] Upload ke Videy (FIXED HEADERS)
  */
 async function uploadToVidey(remoteUrl) {
-  const tempFilePath = path.join(os.tmpdir(), `video_${Date.now()}.mp4`);
+  const tempFilePath = path.join(os.tmpdir(), `vid_${Date.now()}.mp4`);
   try {
-    const response = await fetch(remoteUrl);
+    console.log("⏳ [Videy] Downloading from source...");
+    // Tambahkan User-Agent agar tidak kena 403 Forbidden oleh CDNs (FB/X/IG)
+    const response = await fetch(remoteUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+    });
+    
+    if (!response.ok) throw new Error(`Source status: ${response.status}`);
+
     const buffer = Buffer.from(await response.arrayBuffer());
     fs.writeFileSync(tempFilePath, buffer);
-    const cmd = `curl -s -X POST https://videy.co/api/upload -F "file=@${tempFilePath};type=video/mp4"`;
+
+    console.log("⏳ [Videy] Uploading to Videy...");
+    // Gunakan curl dengan penyamaran yang lebih baik
+    const cmd = `curl -s -X POST https://videy.co/api/upload \
+      -H "Origin: https://videy.co" \
+      -H "Referer: https://videy.co/" \
+      -F "file=@${tempFilePath};type=video/mp4"`;
+
     const result = JSON.parse(execSync(cmd).toString());
     if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+    
     return result?.id ? `https://videy.co/v/?id=${result.id}` : null;
   } catch (error) {
+    console.error("❌ [Videy Error]", error.message);
     if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
     return null;
   }
@@ -156,16 +155,12 @@ export default async function handler(req, res) {
   if (!url) return res.status(400).json({ success: false, error: "URL kosong" });
 
   try {
-    // 0. Perluas URL (Handle Shortlinks)
-    console.log("🔍 [0] Memperluas URL...");
     const expandedUrl = await expandUrl(url);
-
     const isFB = expandedUrl.includes('facebook.com') || expandedUrl.includes('fb.com');
     const isTT = expandedUrl.includes('tiktok.com');
     const isX  = expandedUrl.includes('twitter.com') || expandedUrl.includes('x.com');
     const isIG = expandedUrl.includes('instagram.com');
 
-    // 1. Ambil Metadata secara Paralel
     let metadataPromise;
     if (isFB || isIG) metadataPromise = getProfileName(expandedUrl);
     else if (isTT) metadataPromise = getTikTokMetadata(expandedUrl);
@@ -174,56 +169,60 @@ export default async function handler(req, res) {
 
     let finalVideoUrl = null;
     let methodUsed = "";
+    let forceTitle = null;
 
-    // 2. Step 1: Snapsave (Utama)
-    console.log("📥 [Step 1] Mencoba Snapsave...");
+    // STEP 1: Snapsave
     try {
-        const snapResult = await snapsave(expandedUrl);
-        if (snapResult?.success && snapResult.data?.media?.[0]?.url) {
-            finalVideoUrl = snapResult.data.media[0].url;
+        const snap = await snapsave(expandedUrl);
+        if (snap?.success && snap.data?.media?.[0]?.url) {
+            finalVideoUrl = snap.data.media[0].url;
             methodUsed = "Snapsave";
         }
     } catch (e) {}
 
-    // 3. Step 2: TikWM (Khusus TikTok)
+    // STEP 2: TikWM (TikTok)
     if (!finalVideoUrl && isTT) {
-        console.log("📥 [Step 2] Mencoba TikWM Engine...");
         finalVideoUrl = await tryTikWMVideo(expandedUrl);
         if (finalVideoUrl) methodUsed = "TikWM Engine";
     }
 
-    // 4. Step 3: Multi-Cobalt (Fallback Terakhir)
-    if (!finalVideoUrl) {
-        console.log("📥 [Step 3] Mencoba Cobalt System...");
-        finalVideoUrl = await tryVxTwitter(expandedUrl);
-        if (finalVideoUrl) methodUsed = "tryVxTwitter System";
+    // STEP 3: VxTwitter (X)
+    if (!finalVideoUrl && isX) {
+        const vx = await tryVxTwitter(expandedUrl);
+        if (vx) {
+            finalVideoUrl = vx.url;
+            forceTitle = vx.title;
+            methodUsed = "VxTwitter Bypass";
+        }
     }
 
-    // Gagal Total
+    // STEP 4: Cobalt (Fallback Universal)
     if (!finalVideoUrl) {
-      return res.status(404).json({ 
-        success: false, 
-        error: "Semua metode gagal",
-        detail: "Link tidak dapat dijangkau oleh Snapsave maupun Cobalt." 
-      });
+        finalVideoUrl = await tryCobalt(expandedUrl);
+        if (finalVideoUrl) methodUsed = "Cobalt System";
     }
 
-    // 5. Upload ke Videy
+    if (!finalVideoUrl) {
+      return res.status(404).json({ success: false, error: "Gagal mengekstrak video dari semua metode." });
+    }
+
+    // UPLOAD PROSES
     const videyLink = await uploadToVidey(finalVideoUrl);
-    if (!videyLink) return res.status(500).json({ success: false, error: "Gagal upload ke Videy" });
+    if (!videyLink) {
+        return res.status(500).json({ 
+            success: false, 
+            error: "Gagal upload ke Videy",
+            debug: { method: methodUsed, source: finalVideoUrl.substring(0, 50) + "..." }
+        });
+    }
 
-    // 6. Penentuan Judul
     const profileName = await metadataPromise;
-    const platformLabel = isFB ? "FB Video" : isTT ? "TikTok" : isX ? "X Video" : isIG ? "Instagram" : "Media";
-    const finalTitle = profileName || `${platformLabel} ${expandedUrl.split('/').filter(p => p.length > 4).pop()?.substring(0, 8)}`;
+    const platformLabel = isFB ? "FB" : isTT ? "TikTok" : isX ? "X" : isIG ? "IG" : "Media";
+    const finalTitle = forceTitle || profileName || `${platformLabel} Video ${expandedUrl.split('/').filter(p => p.length > 4).pop()?.substring(0, 8)}`;
 
     return res.status(200).json({
       success: true,
-      data: {
-        title: finalTitle,
-        videyUrl: videyLink,
-        method: methodUsed
-      }
+      data: { title: finalTitle, videyUrl: videyLink, method: methodUsed }
     });
 
   } catch (err) {
