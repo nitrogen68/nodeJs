@@ -6,6 +6,19 @@ import path from "path";
 import os from "os";
 
 /**
+ * [UTILITY] URL Expander
+ * Menangani link pendek (share/r/, vt.tiktok, bit.ly) agar scraper mendapatkan URL asli.
+ */
+async function expandUrl(url) {
+  try {
+    const response = await fetch(url, { method: 'HEAD', redirect: 'follow' });
+    return response.url;
+  } catch (e) {
+    return url;
+  }
+}
+
+/**
  * [METADATA] X/Twitter OEmbed
  */
 async function getXMetadata(url) {
@@ -33,7 +46,7 @@ async function getTikTokMetadata(url) {
 }
 
 /**
- * [METADATA] FB & Instagram Scraper
+ * [METADATA] FB & Instagram Scraper (Improved Regex)
  */
 async function getProfileName(url) {
   try {
@@ -46,6 +59,7 @@ async function getProfileName(url) {
     let cleanPool = ((ogTitle ? ogTitle[1] : "") + " " + (ogDesc ? ogDesc[1] : ""))
                     .replace(/&quot;/g, '"').replace(/&#\w+;/g, ' ').replace(/\s+/g, ' ');
 
+    // Split berdasarkan pemisah umum dan kata hubung "pada/on/di"
     const parts = cleanPool.split(/\s*\|\s*|\s*-\s*|\s*·\s*|\s+pada\s+|\s+on\s+|\s+di\s+/i).map(p => p.trim());
     const candidates = parts.filter(p => !(/\d{4}|Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Sep|Okt|Nov|Des/i.test(p)) && p.length > 2);
     
@@ -59,8 +73,18 @@ async function getProfileName(url) {
 }
 
 /**
- * [FALLBACK] Cobalt Multi-Instance
- * Menghindari 403/Forbidden dan Limitasi Binary di Vercel
+ * [DOWNLOADER] TikTok Special via TikWM
+ */
+async function tryTikWMVideo(url) {
+  try {
+    const res = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`);
+    const json = await res.json();
+    return json?.data?.play || null; 
+  } catch (e) { return null; }
+}
+
+/**
+ * [DOWNLOADER] Cobalt Multi-Instance (Fallback Terakhir)
  */
 async function tryCobalt(url) {
   const instances = [
@@ -70,25 +94,20 @@ async function tryCobalt(url) {
   ];
 
   for (const apiUrl of instances) {
-    console.log(`🔄 [Cobalt] Mencoba: ${apiUrl}`);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-
       const response = await fetch(apiUrl, {
         method: "POST",
-        signal: controller.signal,
         headers: { 
           "Content-Type": "application/json", 
           "Accept": "application/json",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
           "Origin": "https://cobalt.tools",
           "Referer": "https://cobalt.tools/"
         },
-        body: JSON.stringify({ url, videoQuality: "720" })
+        body: JSON.stringify({ url, videoQuality: "720", vCodec: "h264" })
       });
 
       const data = await response.json();
-      clearTimeout(timeoutId);
       if (data?.url) return data.url;
     } catch (e) { console.warn(`⚠️ Instance gagal: ${apiUrl}`); }
   }
@@ -123,55 +142,66 @@ export default async function handler(req, res) {
   if (!url) return res.status(400).json({ success: false, error: "URL kosong" });
 
   try {
-    const isFB = url.includes('facebook.com') || url.includes('fb.com');
-    const isTT = url.includes('tiktok.com');
-    const isX  = url.includes('twitter.com') || url.includes('x.com');
-    const isIG = url.includes('instagram.com');
+    // 0. Perluas URL (Handle Shortlinks)
+    console.log("🔍 [0] Memperluas URL...");
+    const expandedUrl = await expandUrl(url);
+
+    const isFB = expandedUrl.includes('facebook.com') || expandedUrl.includes('fb.com');
+    const isTT = expandedUrl.includes('tiktok.com');
+    const isX  = expandedUrl.includes('twitter.com') || expandedUrl.includes('x.com');
+    const isIG = expandedUrl.includes('instagram.com');
 
     // 1. Ambil Metadata secara Paralel
     let metadataPromise;
-    if (isFB || isIG) metadataPromise = getProfileName(url);
-    else if (isTT) metadataPromise = getTikTokMetadata(url);
-    else if (isX)  metadataPromise = getXMetadata(url);
+    if (isFB || isIG) metadataPromise = getProfileName(expandedUrl);
+    else if (isTT) metadataPromise = getTikTokMetadata(expandedUrl);
+    else if (isX)  metadataPromise = getXMetadata(expandedUrl);
     else metadataPromise = Promise.resolve(null);
 
     let finalVideoUrl = null;
     let methodUsed = "";
 
-    // 2. Step 1: Snapsave
+    // 2. Step 1: Snapsave (Utama)
     console.log("📥 [Step 1] Mencoba Snapsave...");
     try {
-        const snapResult = await snapsave(url);
+        const snapResult = await snapsave(expandedUrl);
         if (snapResult?.success && snapResult.data?.media?.[0]?.url) {
             finalVideoUrl = snapResult.data.media[0].url;
             methodUsed = "Snapsave";
         }
     } catch (e) {}
 
-    // 3. Step 2: Multi-Cobalt (Jika Snapsave gagal)
+    // 3. Step 2: TikWM (Khusus TikTok)
+    if (!finalVideoUrl && isTT) {
+        console.log("📥 [Step 2] Mencoba TikWM Engine...");
+        finalVideoUrl = await tryTikWMVideo(expandedUrl);
+        if (finalVideoUrl) methodUsed = "TikWM Engine";
+    }
+
+    // 4. Step 3: Multi-Cobalt (Fallback Terakhir)
     if (!finalVideoUrl) {
-        console.log("📥 [Step 2] Snapsave gagal, mencoba Cobalt System...");
-        finalVideoUrl = await tryCobalt(url);
+        console.log("📥 [Step 3] Mencoba Cobalt System...");
+        finalVideoUrl = await tryCobalt(expandedUrl);
         if (finalVideoUrl) methodUsed = "Cobalt System";
     }
 
-    // Jika semua gagal
+    // Gagal Total
     if (!finalVideoUrl) {
       return res.status(404).json({ 
         success: false, 
-        error: "Semua metode ekstraksi gagal",
-        detail: "Media tidak dapat dijangkau oleh Snapsave maupun Cobalt." 
+        error: "Semua metode gagal",
+        detail: "Link tidak dapat dijangkau oleh Snapsave maupun Cobalt." 
       });
     }
 
-    // 4. Upload ke Videy
+    // 5. Upload ke Videy
     const videyLink = await uploadToVidey(finalVideoUrl);
     if (!videyLink) return res.status(500).json({ success: false, error: "Gagal upload ke Videy" });
 
-    // 5. Final Title Construction
+    // 6. Penentuan Judul
     const profileName = await metadataPromise;
     const platformLabel = isFB ? "FB Video" : isTT ? "TikTok" : isX ? "X Video" : isIG ? "Instagram" : "Media";
-    const finalTitle = profileName || `${platformLabel} ${url.split('/').filter(p => p.length > 4).pop()?.substring(0, 8)}`;
+    const finalTitle = profileName || `${platformLabel} ${expandedUrl.split('/').filter(p => p.length > 4).pop()?.substring(0, 8)}`;
 
     return res.status(200).json({
       success: true,
