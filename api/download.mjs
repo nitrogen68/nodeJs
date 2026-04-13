@@ -53,6 +53,57 @@ async function getProfileName(url) {
 }
 
 /**
+ * [DOWNLOADER KHUSUS META] FB & IG Bypass
+ * Menggunakan Endpoint API Komunitas yang tahan banting terhadap blokir IP Vercel
+ */
+async function tryMetaBypass(url, platform) {
+  console.log(`🔍 [${platform}] Mencoba Meta Bypass API...`);
+  
+  // Daftar API Komunitas (Ryzendesu & Siputzx)
+  const endpoints = [
+    `https://api.ryzendesu.vip/api/downloader/${platform === 'IG' ? 'igdl' : 'fbdl'}?url=${encodeURIComponent(url)}`,
+    `https://api.siputzx.my.id/api/d/${platform === 'IG' ? 'igdl' : 'facebook'}?url=${encodeURIComponent(url)}`
+  ];
+
+  for (const api of endpoints) {
+    try {
+      const res = await fetch(api, { headers: { 'Accept': 'application/json' } });
+      const json = await res.json();
+      
+      let videos = [];
+
+      // Parsing Format Ryzendesu
+      if (api.includes('ryzendesu')) {
+          if (Array.isArray(json.data)) {
+              // Ambil semua video, filter yang formatnya mp4
+              videos = json.data.map(item => item.url ? item.url : item).filter(u => u && u.includes('mp4'));
+          } else if (json.url) {
+              videos = [json.url];
+          }
+      } 
+      // Parsing Format Siputzx
+      else if (api.includes('siputzx') && json.data) {
+          if (platform === 'IG' && Array.isArray(json.data)) {
+              videos = json.data.map(item => item.url);
+          } else if (platform === 'FB') {
+              // Untuk FB, prioritaskan HD. Jika HD tidak ada, ambil SD
+              videos = [json.data.hd || json.data.sd].filter(Boolean);
+          }
+      }
+
+      // Jika berhasil dapat video, langsung kembalikan
+      if (videos.length > 0) {
+          console.log(`✅ [${platform}] Berhasil via ${new URL(api).hostname}`);
+          return videos;
+      }
+    } catch (e) { 
+        console.warn(`⚠️ Gagal di ${api}`); 
+    }
+  }
+  return null;
+}
+
+/**
  * [FIXED] Extraction via VxTwitter API + Clean Text Caption
  */
 async function tryVxTwitter(url) {
@@ -91,7 +142,6 @@ async function tryVxTwitter(url) {
   } catch (e) { return null; }
   return null;
 }
-
 
 async function tryTikWMVideo(url) {
   try {
@@ -178,6 +228,17 @@ export default async function handler(req, res) {
             methodUsed = "Snapsave";
         }
     } catch (e) {}
+
+    // STEP 1.5: META BYPASS (Khusus Facebook & Instagram)
+    if (finalVideoUrls.length === 0 && (isFB || isIG)) {
+        const platformCode = isIG ? 'IG' : 'FB';
+        const metaUrls = await tryMetaBypass(expandedUrl, platformCode);
+        
+        if (metaUrls && metaUrls.length > 0) {
+            finalVideoUrls = metaUrls; // Karena result sudah berbentuk Array
+            methodUsed = "Meta API Bypass";
+        }
+    }
 
     // STEP 2: TikWM (TikTok)
     if (finalVideoUrls.length === 0 && isTT) {
