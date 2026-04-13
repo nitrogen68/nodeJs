@@ -45,24 +45,26 @@
     }
 
     
-    /* Animasi Kedip Biru Neon */
-    @keyframes flashNeon {
+
+    /* Animasi Kedip Pink Transparan */
+    @keyframes flashPink {
         0%, 100% { 
-            border-color: rgba(59, 130, 246, 0.4); 
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.1); 
-            background-color: rgba(11, 17, 32, 1); 
+            border-color: rgba(236, 72, 153, 0.3); /* Tailwind pink-500 */
+            box-shadow: 0 0 10px rgba(236, 72, 153, 0.1); 
+            background-color: transparent; /* Latar belakang tetap transparan */
         }
         50% { 
-            border-color: rgba(59, 130, 246, 1); 
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6); 
-            background-color: rgba(30, 58, 138, 0.2); 
+            border-color: rgba(236, 72, 153, 1); 
+            box-shadow: 0 0 20px rgba(236, 72, 153, 0.6); 
+            background-color: transparent; /* Latar belakang tetap transparan */
         }
     }
     
-    .animate-flash {
-        animation: flashNeon 1s ease-in-out infinite;
+    .animate-flash-pink {
+        animation: flashPink 1.2s ease-in-out infinite;
     }
 </style>
+
 
 </head>
 <body class="min-h-screen p-4 md:p-10 font-sans" onload="initApp()">
@@ -264,6 +266,22 @@ function updateTabCounts() {
     document.getElementById('count-tiktok').textContent = counts.tiktok;
 }
 
+function clearHighlight(element, id) {
+    // Jika tidak ada animasi pink, abaikan
+    if (!element.classList.contains('animate-flash-pink')) return;
+    
+    // 1. Hapus class animasi dari layar dengan halus
+    element.classList.remove('animate-flash-pink', 'border-pink-500');
+    element.classList.add('border-slate-800');
+    
+    // 2. Tandai di LocalStorage agar tidak berkedip lagi jika halaman di-refresh
+    let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+    const index = history.findIndex(h => h.id === id);
+    if (index !== -1 && history[index].isNew) {
+        history[index].isNew = false;
+        localStorage.setItem('scrapeHistory', JSON.stringify(history));
+    }
+}
 
 /* --- Perbaiki renderHistory --- */
 function getPlatformPrefix(filter) {
@@ -351,8 +369,12 @@ function renderHistory(filter = 'twitter') {
 
         /* ---------- HTML CARD ---------- */  
         return `  
-        <div id="history-card-${item.id}" class="bg-[#0b1120] p-4 rounded-[1rem] border ${item.isNew ? 'animate-flash border-blue-500' : 'border-slate-800'} relative transition-colors duration-500 mb-3">
-
+        // MENJADI SEPERTI INI:
+<div id="history-card-${item.id}" 
+     onmouseenter="clearHighlight(this, ${item.id})"
+     onclick="clearHighlight(this, ${item.id})"
+     class="bg-[#0b1120] p-4 rounded-[1rem] border ${item.isNew ? 'animate-flash-pink border-pink-500' : 'border-slate-800'} relative transition-colors duration-500 mb-3">
+     
             <div class="flex justify-between items-start mb-2">  
                 <div class="flex items-center gap-2 text-slate-400">  
                     ${iconHtml}  
