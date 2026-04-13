@@ -437,38 +437,56 @@ function initApp() {
         
         /* ==================================================
            TAB SYSTEM
-        ================================================== */
-        function switchMainTab(tabId) {
-            const sectionDownloader = document.getElementById('section-downloader');
-            const sectionHistory = document.getElementById('section-history');
-            const tabDownloaderBtn = document.getElementById('mainTab-downloader');
-            const tabHistoryBtn = document.getElementById('mainTab-history');
+        ================================================== */       
+function switchMainTab(tabId) {
+    const sectionDownloader = document.getElementById('section-downloader');
+    const sectionHistory = document.getElementById('section-history');
+    const tabDownloaderBtn = document.getElementById('mainTab-downloader');
+    const tabHistoryBtn = document.getElementById('mainTab-history');
 
-            if (tabId === 'downloader') {
-                sectionDownloader.classList.remove('hidden');
-                sectionHistory.classList.add('hidden');
-                tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2";
-                tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-transparent text-slate-400 flex items-center justify-center gap-2";
-            } else {
-                sectionDownloader.classList.add('hidden');
-                sectionHistory.classList.remove('hidden');
-                tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2 relative";
-                tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-transparent text-slate-400 flex items-center justify-center gap-2";
+    if (tabId === 'downloader') {
+        sectionDownloader.classList.remove('hidden');
+        sectionHistory.classList.add('hidden');
+        tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2";
+        tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-transparent text-slate-400 flex items-center justify-center gap-2";
+    } else {
+        sectionDownloader.classList.add('hidden');
+        sectionHistory.classList.remove('hidden');
+        tabHistoryBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2 relative";
+        tabDownloaderBtn.className = "flex-1 py-3 text-sm font-bold rounded-lg bg-transparent text-slate-400 flex items-center justify-center gap-2";
 
-                // New items handling
-                let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-                const newItem = history.find(item => item.isNew);
-                if (newItem) {
-                    let targetCategory = getDomainCategory(newItem.url);
-                    if (!['facebook', 'twitter', 'tiktok'].includes(targetCategory)) targetCategory = 'twitter';
-                    renderHistory(targetCategory);
-                    localStorage.setItem('scrapeHistory', JSON.stringify(history.map(i => ({...i, isNew: false}))));
-                    updateHistoryBadge();
-                } else {
-                    renderHistory(currentHistoryTab);
-                }
+        // ==========================================
+        // PENANGANAN ITEM BARU & BADGE NOTIFIKASI
+        // ==========================================
+        let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+        const newItem = history.find(item => item.isNew);
+        
+        if (newItem) {
+            let targetCategory = typeof getDomainCategory === 'function' ? getDomainCategory(newItem.url) : 'twitter';
+            
+            // Perbaikan: Pastikan instagram masuk ke dalam daftar
+            if (!['facebook', 'instagram', 'twitter', 'tiktok'].includes(targetCategory)) {
+                targetCategory = 'twitter';
             }
+            
+            // 1. RENDER DULU: Biarkan DOM membaca isNew=true agar highlight pink muncul
+            renderHistory(targetCategory);
+            
+            // 2. BERSIHKAN STATUS DI BACKGROUND: Ubah semua menjadi false
+            const clearedHistory = history.map(i => ({...i, isNew: false}));
+            localStorage.setItem('scrapeHistory', JSON.stringify(clearedHistory));
+            
+            // 3. UPDATE BADGE: Panggil pembaruan UI agar titik merah langsung lenyap
+            if (typeof updateHistoryBadge === 'function') updateHistoryBadge();
+            if (typeof updateTabCounts === 'function') updateTabCounts();
+            
+        } else {
+            // Jika tidak ada item baru, buka tab yang terakhir kali dilihat
+            const fallbackTab = typeof currentHistoryTab !== 'undefined' ? currentHistoryTab : 'twitter';
+            renderHistory(fallbackTab);
         }
+    }
+}
 
         /* ==================================================
            CORE EXTRACTION
