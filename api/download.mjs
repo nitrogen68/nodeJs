@@ -53,52 +53,54 @@ async function getProfileName(url) {
 }
 
 /**
- * [DOWNLOADER KHUSUS META] FB & IG Bypass
- * Menggunakan Endpoint API Komunitas yang tahan banting terhadap blokir IP Vercel
+ * [DOWNLOADER KHUSUS META] Ferdev API Bypass
+ * Menggunakan Endpoint Premium untuk stabilitas FB & IG
  */
 async function tryMetaBypass(url, platform) {
-  console.log(`🔍 [${platform}] Mencoba Meta Bypass API...`);
+  console.log(`🔍 [${platform}] Mencoba Ferdev API Bypass...`);
   
-  // Daftar API Komunitas (Ryzendesu & Siputzx)
-  const endpoints = [
-    `https://api.ryzendesu.vip/api/downloader/${platform === 'IG' ? 'igdl' : 'fbdl'}?url=${encodeURIComponent(url)}`,
-    `https://api.siputzx.my.id/api/d/${platform === 'IG' ? 'igdl' : 'facebook'}?url=${encodeURIComponent(url)}`
-  ];
+  const apiKey = "nitrojp88";
+  const endpoint = platform === 'IG' 
+    ? `https://api.ferdev.my.id/downloader/instagram?link=${encodeURIComponent(url)}&apikey=${apiKey}`
+    : `https://api.ferdev.my.id/downloader/facebook?link=${encodeURIComponent(url)}&apikey=${apiKey}`;
 
-  for (const api of endpoints) {
-    try {
-      const res = await fetch(api, { headers: { 'Accept': 'application/json' } });
-      const json = await res.json();
-      
-      let videos = [];
+  try {
+    const res = await fetch(endpoint, { headers: { 'Accept': 'application/json' } });
+    const json = await res.json();
+    
+    if (json.success && json.data) {
+        let videos = [];
+        let fetchedTitle = null;
 
-      // Parsing Format Ryzendesu
-      if (api.includes('ryzendesu')) {
-          if (Array.isArray(json.data)) {
-              // Ambil semua video, filter yang formatnya mp4
-              videos = json.data.map(item => item.url ? item.url : item).filter(u => u && u.includes('mp4'));
-          } else if (json.url) {
-              videos = [json.url];
-          }
-      } 
-      // Parsing Format Siputzx
-      else if (api.includes('siputzx') && json.data) {
-          if (platform === 'IG' && Array.isArray(json.data)) {
-              videos = json.data.map(item => item.url);
-          } else if (platform === 'FB') {
-              // Untuk FB, prioritaskan HD. Jika HD tidak ada, ambil SD
-              videos = [json.data.hd || json.data.sd].filter(Boolean);
-          }
-      }
+        // Parsing Format Instagram dari Ferdev
+        if (platform === 'IG') {
+            if (json.data.dlink) videos.push(json.data.dlink);
+            if (json.data.metadata && json.data.metadata.title) {
+                fetchedTitle = json.data.metadata.username 
+                    ? `@${json.data.metadata.username} - ${json.data.metadata.title.substring(0, 45)}...`
+                    : json.data.metadata.title.substring(0, 45) + "...";
+            }
+        } 
+        // Parsing Format Facebook dari Ferdev
+        else if (platform === 'FB') {
+            // Prioritaskan HD, jika gagal ambil SD
+            const vidUrl = json.data.hd || json.data.sd;
+            if (vidUrl) videos.push(vidUrl);
+            
+            if (json.data.title && json.data.title.toLowerCase() !== "unknown") {
+                fetchedTitle = json.data.title.substring(0, 45) + "...";
+            }
+        }
 
-      // Jika berhasil dapat video, langsung kembalikan
-      if (videos.length > 0) {
-          console.log(`✅ [${platform}] Berhasil via ${new URL(api).hostname}`);
-          return videos;
-      }
-    } catch (e) { 
-        console.warn(`⚠️ Gagal di ${api}`); 
+        if (videos.length > 0) {
+            console.log(`✅ [${platform}] Berhasil via Ferdev API!`);
+            // Hilangkan enter/newline pada title agar tidak merusak UI JSON
+            if (fetchedTitle) fetchedTitle = fetchedTitle.replace(/[\r\n]+/g, ' ');
+            return { urls: videos, title: fetchedTitle };
+        }
     }
+  } catch (e) { 
+      console.warn(`⚠️ Gagal di Ferdev API: ${e.message}`); 
   }
   return null;
 }
@@ -119,18 +121,9 @@ async function tryVxTwitter(url) {
         const videos = json.mediaURLs.filter(link => link.includes('.mp4'));
         
         if (videos.length > 0) {
-            // 1. Ambil teks asli tweet
             let rawText = json.text || "Video";
-            
-            // 2. Bersihkan teks dari link bawaan Twitter (https://t.co/...)
             let cleanText = rawText.replace(/https?:\/\/\S+/g, '').trim();
-            
-            // 3. Batasi panjang karakter agar tidak merusak UI Card (misal: 45 karakter)
-            if (cleanText.length > 45) {
-                cleanText = cleanText.substring(0, 45) + "...";
-            }
-            
-            // Jika tweet hanya berisi link tanpa teks sama sekali
+            if (cleanText.length > 45) cleanText = cleanText.substring(0, 45) + "...";
             if (!cleanText) cleanText = "Video";
 
             return { 
@@ -215,7 +208,7 @@ export default async function handler(req, res) {
     else if (isX)  metadataPromise = getXMetadata(expandedUrl);
     else metadataPromise = Promise.resolve(null);
 
-    let finalVideoUrls = []; // SEKARANG ARRAY
+    let finalVideoUrls = [];
     let methodUsed = "";
     let forceTitle = null;
 
@@ -223,20 +216,20 @@ export default async function handler(req, res) {
     try {
         const snap = await snapsave(expandedUrl);
         if (snap?.success && snap.data?.media?.length > 0) {
-            // Ambil semua URL dari Snapsave
             finalVideoUrls = snap.data.media.map(m => m.url).filter(u => u);
             methodUsed = "Snapsave";
         }
     } catch (e) {}
 
-    // STEP 1.5: META BYPASS (Khusus Facebook & Instagram)
+    // STEP 1.5: FERDEV API BYPASS (Khusus FB & IG)
     if (finalVideoUrls.length === 0 && (isFB || isIG)) {
         const platformCode = isIG ? 'IG' : 'FB';
-        const metaUrls = await tryMetaBypass(expandedUrl, platformCode);
+        const metaBypass = await tryMetaBypass(expandedUrl, platformCode);
         
-        if (metaUrls && metaUrls.length > 0) {
-            finalVideoUrls = metaUrls; // Karena result sudah berbentuk Array
-            methodUsed = "Meta API Bypass";
+        if (metaBypass && metaBypass.urls && metaBypass.urls.length > 0) {
+            finalVideoUrls = metaBypass.urls;
+            if (metaBypass.title) forceTitle = metaBypass.title;
+            methodUsed = "Ferdev API";
         }
     }
 
@@ -250,7 +243,7 @@ export default async function handler(req, res) {
     if (finalVideoUrls.length === 0 && isX) {
         const vx = await tryVxTwitter(expandedUrl);
         if (vx && vx.urls && vx.urls.length > 0) {
-            finalVideoUrls = vx.urls; // Ambil semua array URLs
+            finalVideoUrls = vx.urls;
             forceTitle = vx.title;
             methodUsed = "VxTwitter Bypass";
         }
@@ -266,7 +259,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ success: false, error: "Gagal mengekstrak video dari semua metode." });
     }
 
-    // UPLOAD PROSES (Mendukung Multi-Video)
+    // UPLOAD PROSES
     const videyLinks = [];
     for (const vUrl of finalVideoUrls) {
         const uploadedLink = await uploadToVidey(vUrl);
@@ -289,7 +282,7 @@ export default async function handler(req, res) {
       success: true,
       data: { 
         title: finalTitle, 
-        videyUrls: videyLinks, // DIKIRIM SEBAGAI ARRAY
+        videyUrls: videyLinks,
         method: methodUsed 
       }
     });
