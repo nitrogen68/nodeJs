@@ -59,7 +59,14 @@ async function getProfileName(url) {
 async function tryMetaBypass(url, platform) {
   console.log(`🔍 [${platform}] Mencoba Ferdev API Bypass...`);
   
-  const apiKey = "nitrojp88";
+    // PERBAIKAN: Mengambil API Key dari Environment Variables Vercel
+  const apiKey = process.env.FERDEV_API_KEY;
+
+  if (!apiKey) {
+      console.error("❌ [Keamanan] FERDEV_API_KEY belum disetting di Vercel!");
+      return null;
+  }
+  
   const endpoint = platform === 'IG' 
     ? `https://api.ferdev.my.id/downloader/instagram?link=${encodeURIComponent(url)}&apikey=${apiKey}`
     : `https://api.ferdev.my.id/downloader/facebook?link=${encodeURIComponent(url)}&apikey=${apiKey}`;
