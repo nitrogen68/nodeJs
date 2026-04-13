@@ -12,6 +12,33 @@ async function expandUrl(url) {
   } catch (e) { return url; }
 }
 
+/**
+ * [FALLBACK KHUSUS FB] Crawler Penyamaran FacebookExternalHit
+ * Digunakan jika metadata profil gagal didapatkan dari metode lain.
+ */
+async function getFacebookDetails(url) {
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+                'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
+            }
+        });
+        const html = await response.text();
+        const titleMatch = html.match(/<meta property="og:title" content="(.*?)"/i);
+        if (titleMatch) {
+            let title = titleMatch[1]
+                .replace(/&#x27;/g, "'")
+                .replace(/&quot;/g, '"')
+                .replace(/&amp;/g, '&')
+                .replace(/[^\w\d.\s]/g, '') // Bersihkan karakter aneh
+                .trim();
+            return title.length > 3 ? title : null;
+        }
+    } catch (e) { return null; }
+    return null;
+}
+
 async function getXMetadata(url) {
   try {
     const res = await fetch(`https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`);
@@ -52,18 +79,10 @@ async function getProfileName(url) {
   return null;
 }
 
-/**
- * [DOWNLOADER KHUSUS META] Ferdev API Bypass
- */
 async function tryMetaBypass(url, platform) {
   console.log(`🔍 [${platform}] Mencoba Ferdev API Bypass...`);
-  
   const apiKey = process.env.FERDEV_API_KEY;
-
-  if (!apiKey) {
-      console.error("❌ [Keamanan] FERDEV_API_KEY belum disetting di Vercel!");
-      return null;
-  }
+  if (!apiKey) return null;
   
   const endpoint = platform === 'IG' 
     ? `https://api.ferdev.my.id/downloader/instagram?link=${encodeURIComponent(url)}&apikey=${apiKey}`
@@ -72,11 +91,9 @@ async function tryMetaBypass(url, platform) {
   try {
     const res = await fetch(endpoint, { headers: { 'Accept': 'application/json' } });
     const json = await res.json();
-    
     if (json.success && json.data) {
         let videos = [];
         let fetchedTitle = null;
-
         if (platform === 'IG') {
             if (json.data.dlink) videos.push(json.data.dlink);
             if (json.data.metadata && json.data.metadata.title) {
@@ -86,57 +103,38 @@ async function tryMetaBypass(url, platform) {
             }
         } 
         else if (platform === 'FB') {
-            // Prioritaskan HD, jika gagal ambil SD
             let vidUrl = json.data.hd || json.data.sd;
-            
             if (vidUrl) {
-                // PERBAIKAN: Bersihkan HTML Entities &amp; menjadi & biasa
                 vidUrl = vidUrl.replace(/&amp;/g, '&');
                 videos.push(vidUrl);
             }
-            
             if (json.data.title && json.data.title.toLowerCase() !== "unknown") {
                 fetchedTitle = json.data.title.substring(0, 45) + "...";
             }
         }
-
         if (videos.length > 0) {
-            console.log(`✅ [${platform}] Berhasil via Ferdev API!`);
             if (fetchedTitle) fetchedTitle = fetchedTitle.replace(/[\r\n]+/g, ' ');
             return { urls: videos, title: fetchedTitle };
         }
     }
-  } catch (e) { 
-      console.warn(`⚠️ Gagal di Ferdev API: ${e.message}`); 
-  }
+  } catch (e) { return null; }
   return null;
 }
 
-/**
- * [FIXED] Extraction via VxTwitter API + Clean Text Caption
- */
 async function tryVxTwitter(url) {
   try {
     const tweetIdMatch = url.match(/status\/(\d+)/);
     if (!tweetIdMatch) return null;
-    
     const apiUrl = `https://api.vxtwitter.com/Twitter/status/${tweetIdMatch[1]}`;
     const response = await fetch(apiUrl);
     const json = await response.json();
-    
     if (json.mediaURLs) {
         const videos = json.mediaURLs.filter(link => link.includes('.mp4'));
-        
         if (videos.length > 0) {
             let rawText = json.text || "Video";
             let cleanText = rawText.replace(/https?:\/\/\S+/g, '').trim();
             if (cleanText.length > 45) cleanText = cleanText.substring(0, 45) + "...";
-            if (!cleanText) cleanText = "Video";
-
-            return { 
-                urls: videos, 
-                title: `@${json.user_screen_name} - ${cleanText}` 
-            };
+            return { urls: videos, title: `@${json.user_screen_name} - ${cleanText || "Video"}` };
         }
     }
   } catch (e) { return null; }
@@ -167,90 +165,45 @@ async function tryCobalt(url) {
   return null;
 }
 
-/**
- * [FIXED 403 FORBIDDEN] Upload ke Videy dengan Bypass Headers & cURL
- */
-/**
- * [FIXED] Upload ke Videy dengan Smart Referer & Cek File HTML
- */
 async function uploadToVidey(remoteUrl) {
   const tempFilePath = path.join(os.tmpdir(), `vid_${Date.now()}_${Math.floor(Math.random() * 1000)}.mp4`);
   try {
-    console.log("⏳ [Videy] Downloading from source...");
-    
-    // 1. Atur Headers secara dinamis. (Biarkan Referer KOSONG untuk Twitter)
-    let headers = { 
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': '*/*',
-        'Connection': 'keep-alive'
-    };
-
+    let headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': '*/*', 'Connection': 'keep-alive' };
     let safeReferer = null;
     if (remoteUrl.includes('facebook') || remoteUrl.includes('fbcdn')) safeReferer = 'https://www.facebook.com/';
     else if (remoteUrl.includes('instagram') || remoteUrl.includes('cdninstagram')) safeReferer = 'https://www.instagram.com/';
     else if (remoteUrl.includes('snapcdn')) safeReferer = 'https://snapcdn.app/';
-
-    // Hanya tempelkan Referer jika itu milik Meta/Snapcdn
-    if (safeReferer) {
-        headers['Referer'] = safeReferer;
-    }
+    if (safeReferer) headers['Referer'] = safeReferer;
 
     let response = await fetch(remoteUrl, { headers });
-    
     const contentType = response.headers.get('content-type') || '';
-    const isHtmlBlock = contentType.includes('text/html');
-
-    // 2. Jika diblokir (atau dikasih halaman HTML), coba paksa pakai cURL
-    if (!response.ok || isHtmlBlock) {
-        console.warn(`⚠️ Fetch diblokir. Menggunakan Bypass cURL...`);
+    if (!response.ok || contentType.includes('text/html')) {
         let dlCmd = `curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0" `;
-        if (safeReferer) dlCmd += `-e "${safeReferer}" `; // Hanya pakai referer jika ada
+        if (safeReferer) dlCmd += `-e "${safeReferer}" `;
         dlCmd += `-o "${tempFilePath}" "${remoteUrl}"`;
-        
         execSync(dlCmd);
     } else {
         const buffer = Buffer.from(await response.arrayBuffer());
         fs.writeFileSync(tempFilePath, buffer);
     }
-
-    // 3. VALIDASI UKURAN DAN ISI FILE (SUPER KETAT)
-    if (!fs.existsSync(tempFilePath)) throw new Error("File gagal didownload dari CDN.");
-    
     const stats = fs.statSync(tempFilePath);
-    if (stats.size < 10240) { // 10KB
-        throw new Error(`File terlalu kecil (${stats.size} bytes). Diblokir oleh CDN.`);
-    }
-
-    // Cek isi file mentah: Apakah ini halaman web HTML yang menyamar jadi MP4?
+    if (stats.size < 10240) throw new Error("File corrupt.");
     const fd = fs.openSync(tempFilePath, 'r');
     const bufferHead = Buffer.alloc(100);
     fs.readSync(fd, bufferHead, 0, 100, 0);
     fs.closeSync(fd);
-    
-    const fileHeader = bufferHead.toString('utf8').toLowerCase();
-    if (fileHeader.includes('<!doctype') || fileHeader.includes('<html')) {
-        throw new Error("CDN mengembalikan halaman Error HTML, bukan video MP4.");
-    }
+    if (bufferHead.toString('utf8').toLowerCase().includes('<html')) throw new Error("HTML detected.");
 
-    console.log(`⏳ [Videy] Uploading valid video (${(stats.size / 1024 / 1024).toFixed(2)} MB)...`);
     const cmd = `curl -s -X POST https://videy.co/api/upload -H "Origin: https://videy.co" -H "Referer: https://videy.co/" -F "file=@${tempFilePath};type=video/mp4"`;
-
     const result = JSON.parse(execSync(cmd).toString());
     if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
-    
     return result?.id ? `https://videy.co/v/?id=${result.id}` : null;
-    
   } catch (error) {
-    console.error("❌ [Videy Error]", error.message);
     if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
     return null;
   }
 }
 
-
-// ============================================
-// MAIN HANDLER
-// ============================================
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   const { url } = req.body;
@@ -262,11 +215,8 @@ export default async function handler(req, res) {
     const isX  = url.includes('twitter.com') || url.includes('x.com');
     const isIG = url.includes('instagram.com');
 
-    // [PENTING] Jangan lakukan expandUrl pada Meta (FB/IG) karena memicu block Login.
     let targetUrl = url;
-    if (isTT || url.includes('bit.ly') || url.includes('t.co')) {
-        targetUrl = await expandUrl(url);
-    }
+    if (isTT || url.includes('bit.ly') || url.includes('t.co')) targetUrl = await expandUrl(url);
 
     let metadataPromise;
     if (isFB || isIG) metadataPromise = getProfileName(targetUrl);
@@ -278,89 +228,73 @@ export default async function handler(req, res) {
     let methodUsed = "";
     let forceTitle = null;
 
-    // STEP 1: FERDEV API BYPASS (Prioritas Utama Khusus FB & IG)
-    // Diutamakan agar kita dapat Metadata Nama Profil dengan akurat.
     if (isFB || isIG) {
         const platformCode = isIG ? 'IG' : 'FB';
         const metaBypass = await tryMetaBypass(targetUrl, platformCode);
-        
-        if (metaBypass && metaBypass.urls && metaBypass.urls.length > 0) {
+        if (metaBypass && metaBypass.urls.length > 0) {
             finalVideoUrls = metaBypass.urls;
             if (metaBypass.title) forceTitle = metaBypass.title;
             methodUsed = "Ferdev API";
         }
     }
 
-    // STEP 2: Snapsave (Prioritas untuk TikTok / Platform Lain / Jika Ferdev Error)
     if (finalVideoUrls.length === 0) {
         try {
             const snap = await snapsave(targetUrl);
             if (snap?.success && snap.data?.media?.length > 0) {
-                finalVideoUrls = [snap.data.media[0].url]; // Hanya ambil index ke-0
+                finalVideoUrls = [snap.data.media[0].url];
                 methodUsed = "Snapsave";
             }
         } catch (e) {}
     }
 
-    // STEP 3: TikWM (Khusus TikTok Fallback)
     if (finalVideoUrls.length === 0 && isTT) {
         const ttUrl = await tryTikWMVideo(targetUrl);
         if (ttUrl) { finalVideoUrls = [ttUrl]; methodUsed = "TikWM Engine"; }
     }
 
-    // STEP 4: VxTwitter (Khusus X Fallback)
     if (finalVideoUrls.length === 0 && isX) {
         const vx = await tryVxTwitter(targetUrl);
-        if (vx && vx.urls && vx.urls.length > 0) {
+        if (vx && vx.urls.length > 0) {
             finalVideoUrls = vx.urls;
             forceTitle = vx.title;
             methodUsed = "VxTwitter Bypass";
         }
     }
 
-    // STEP 5: Cobalt (Fallback Terakhir)
     if (finalVideoUrls.length === 0) {
         const cobUrl = await tryCobalt(targetUrl);
         if (cobUrl) { finalVideoUrls = [cobUrl]; methodUsed = "Cobalt System"; }
     }
 
-    if (finalVideoUrls.length === 0) {
-      return res.status(404).json({ success: false, error: "Gagal mengekstrak video dari semua metode." });
-    }
+    if (finalVideoUrls.length === 0) return res.status(404).json({ success: false, error: "Gagal ekstrak." });
 
-    // UPLOAD PROSES
     const videyLinks = [];
     for (const vUrl of finalVideoUrls) {
         const uploadedLink = await uploadToVidey(vUrl);
         if (uploadedLink) videyLinks.push(uploadedLink);
     }
 
-    if (videyLinks.length === 0) {
-        return res.status(500).json({ 
-            success: false, 
-            error: "Gagal upload ke Videy",
-            debug: { method: methodUsed }
-        });
+    if (videyLinks.length === 0) return res.status(500).json({ success: false, error: "Upload gagal." });
+
+    let profileName = await metadataPromise;
+
+    // --- FALLBACK LOGIC UNTUK FACEBOOK PROFILE NAME ---
+    if (isFB && (!profileName || profileName.toLowerCase().includes('facebook'))) {
+        const fbCrawlerDetail = await getFacebookDetails(targetUrl);
+        if (fbCrawlerDetail) profileName = fbCrawlerDetail;
     }
 
-    const profileName = await metadataPromise;
     const platformLabel = isFB ? "FB" : isTT ? "TikTok" : isX ? "X" : isIG ? "IG" : "Media";
-    
-    // Penentuan Judul Terakhir
     let finalTitle = forceTitle || profileName;
     
-    // Jika profil kosong atau judul cuma bertuliskan "reels" / "unknown", pakai fallback rapi
     if (!finalTitle || finalTitle.toLowerCase() === "reels" || finalTitle.toLowerCase() === "unknown") {
         finalTitle = `${platformLabel} Video ${targetUrl.split('/').filter(p => p.length > 4).pop()?.substring(0, 8)}`;
     }
 
     return res.status(200).json({
       success: true,
-      data: { 
-        title: finalTitle, 
-        videyUrls: videyLinks,
-        method: methodUsed 
-      }
+      data: { title: finalTitle, videyUrls: videyLinks, method: methodUsed }
     });
 
   } catch (err) {
