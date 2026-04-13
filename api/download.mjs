@@ -26,14 +26,36 @@ async function getFacebookDetails(url) {
         });
         const html = await response.text();
         const titleMatch = html.match(/<meta property="og:title" content="(.*?)"/i);
+        
         if (titleMatch) {
-            let title = titleMatch[1]
+            // 1. Decode HTML Entities dasar dulu
+            let rawTitle = titleMatch[1]
                 .replace(/&#x27;/g, "'")
                 .replace(/&quot;/g, '"')
-                .replace(/&amp;/g, '&')
-                .replace(/[^\w\d.\s]/g, '') // Bersihkan karakter aneh
-                .trim();
-            return title.length > 3 ? title : null;
+                .replace(/&amp;/g, '&');
+
+            // 2. Pisahkan berdasarkan simbol pemisah umum Meta: # (hashtag), | (pipe), atau - (strip)
+            // Contoh: "Lexi #fypviral" -> ["Lexi ", "fypviral"]
+            let cleanName = rawTitle.split(/[#|\-·]/)[0].trim();
+
+            // 3. Jika setelah dipisahkan hasilnya terlalu pendek, 
+            // kemungkinan nama aslinya memang mengandung simbol tersebut.
+            // Kita gunakan filter cadangan untuk hanya membuang hashtag.
+            if (cleanName.length < 2) {
+                cleanName = rawTitle.replace(/#\w+/g, '').trim();
+            }
+
+            // 4. Baru bersihkan karakter aneh yang tersisa (estetika)
+            // Tetap izinkan spasi, titik, dan tanda petik agar nama seperti "O'Connor" tidak rusak.
+            cleanName = cleanName.replace(/[^\w\d\s'.]/g, '').trim();
+
+            // 5. Validasi akhir: Jangan kembalikan jika judulnya cuma "Facebook" atau "Login"
+            const blacklist = ["facebook", "log in", "masuk", "reels"];
+            if (blacklist.some(word => cleanName.toLowerCase() === word)) {
+                return null;
+            }
+
+            return cleanName.length > 2 ? cleanName : null;
         }
     } catch (e) { return null; }
     return null;
