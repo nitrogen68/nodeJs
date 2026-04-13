@@ -170,48 +170,83 @@ async function tryCobalt(url) {
 /**
  * [FIXED 403 FORBIDDEN] Upload ke Videy dengan Bypass Headers & cURL
  */
+/**
+ * [FIXED] Upload ke Videy dengan Smart Referer & Cek File HTML
+ */
 async function uploadToVidey(remoteUrl) {
   const tempFilePath = path.join(os.tmpdir(), `vid_${Date.now()}_${Math.floor(Math.random() * 1000)}.mp4`);
   try {
     console.log("⏳ [Videy] Downloading from source...");
     
-    // 1. Coba download dengan Fetch (Penyamaran Browser Lengkap)
-    let response = await fetch(remoteUrl, {
-        headers: { 
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'Accept': '*/*',
-            'Connection': 'keep-alive',
-            'Referer': remoteUrl.includes('instagram') ? 'https://www.instagram.com/' : 'https://www.facebook.com/'
-        }
-    });
+    // 1. Atur Headers secara dinamis. (Biarkan Referer KOSONG untuk Twitter)
+    let headers = { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Connection': 'keep-alive'
+    };
+
+    let safeReferer = null;
+    if (remoteUrl.includes('facebook') || remoteUrl.includes('fbcdn')) safeReferer = 'https://www.facebook.com/';
+    else if (remoteUrl.includes('instagram') || remoteUrl.includes('cdninstagram')) safeReferer = 'https://www.instagram.com/';
+    else if (remoteUrl.includes('snapcdn')) safeReferer = 'https://snapcdn.app/';
+
+    // Hanya tempelkan Referer jika itu milik Meta/Snapcdn
+    if (safeReferer) {
+        headers['Referer'] = safeReferer;
+    }
+
+    let response = await fetch(remoteUrl, { headers });
     
-    // 2. Jika Fetch ditolak (403 Forbidden), gunakan Kekerasan via cURL
-    if (!response.ok) {
-        console.warn(`⚠️ Fetch ditolak (${response.status}), mencoba Bypass cURL...`);
-        const dlCmd = `curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0" -e "https://google.com" -o "${tempFilePath}" "${remoteUrl}"`;
-        execSync(dlCmd);
+    const contentType = response.headers.get('content-type') || '';
+    const isHtmlBlock = contentType.includes('text/html');
+
+    // 2. Jika diblokir (atau dikasih halaman HTML), coba paksa pakai cURL
+    if (!response.ok || isHtmlBlock) {
+        console.warn(`⚠️ Fetch diblokir. Menggunakan Bypass cURL...`);
+        let dlCmd = `curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0" `;
+        if (safeReferer) dlCmd += `-e "${safeReferer}" `; // Hanya pakai referer jika ada
+        dlCmd += `-o "${tempFilePath}" "${remoteUrl}"`;
         
-        if (!fs.existsSync(tempFilePath) || fs.statSync(tempFilePath).size === 0) {
-             throw new Error(`Source status: ${response.status} & cURL Failed`);
-        }
+        execSync(dlCmd);
     } else {
         const buffer = Buffer.from(await response.arrayBuffer());
         fs.writeFileSync(tempFilePath, buffer);
     }
 
-    console.log("⏳ [Videy] Uploading to Videy...");
+    // 3. VALIDASI UKURAN DAN ISI FILE (SUPER KETAT)
+    if (!fs.existsSync(tempFilePath)) throw new Error("File gagal didownload dari CDN.");
+    
+    const stats = fs.statSync(tempFilePath);
+    if (stats.size < 10240) { // 10KB
+        throw new Error(`File terlalu kecil (${stats.size} bytes). Diblokir oleh CDN.`);
+    }
+
+    // Cek isi file mentah: Apakah ini halaman web HTML yang menyamar jadi MP4?
+    const fd = fs.openSync(tempFilePath, 'r');
+    const bufferHead = Buffer.alloc(100);
+    fs.readSync(fd, bufferHead, 0, 100, 0);
+    fs.closeSync(fd);
+    
+    const fileHeader = bufferHead.toString('utf8').toLowerCase();
+    if (fileHeader.includes('<!doctype') || fileHeader.includes('<html')) {
+        throw new Error("CDN mengembalikan halaman Error HTML, bukan video MP4.");
+    }
+
+    console.log(`⏳ [Videy] Uploading valid video (${(stats.size / 1024 / 1024).toFixed(2)} MB)...`);
     const cmd = `curl -s -X POST https://videy.co/api/upload -H "Origin: https://videy.co" -H "Referer: https://videy.co/" -F "file=@${tempFilePath};type=video/mp4"`;
 
     const result = JSON.parse(execSync(cmd).toString());
     if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
     
     return result?.id ? `https://videy.co/v/?id=${result.id}` : null;
+    
   } catch (error) {
     console.error("❌ [Videy Error]", error.message);
     if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
     return null;
   }
 }
+
 
 // ============================================
 // MAIN HANDLER
