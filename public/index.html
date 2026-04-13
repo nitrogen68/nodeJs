@@ -496,16 +496,23 @@ document.getElementById('scrape-form').addEventListener('submit', async (e) => {
             return;
         }
 
-        if (data.success && data.data?.videyUrl) {
-            console.log("✅ [FE] Success! Video URL:", data.data.videyUrl);
+                // PERBAIKAN: Mengecek 'videyUrls' (pakai 's') dan memastikan isinya ada
+        if (data.success && data.data?.videyUrls && data.data.videyUrls.length > 0) {
+            console.log("✅ [FE] Success! Video URLs:", data.data.videyUrls);
+            
+            // Render video ke layar utama
             renderSingleVideo(data.data, url);
-            saveToHistory(url, data.data.title, [data.data.videyUrl]);
+            
+            // Simpan ke riwayat (Langsung masukkan array videyUrls, tidak perlu dibungkus kurung siku lagi)
+            saveToHistory(url, data.data.title, data.data.videyUrls);
+            
             jsonEl.textContent = JSON.stringify(data, null, 2);
             resultWrapper.classList.remove('hidden');
         } else {
             console.error("❌ [FE] Unexpected response structure");
             alert("Gagal: Response tidak sesuai\n\n" + JSON.stringify(data, null, 2));
         }
+
         
     } catch (err) {
         console.error("💥 [FE] Network error:", err);
@@ -531,28 +538,44 @@ function renderSingleVideo(data, targetUrl) {
 
     const platform = getDomainCategory(targetUrl);
     const displayTitle = `${platform}: ${data.title}`;
-    // Extract video URL dari videy format
-    const videoSrc = data.videyUrl.replace('https://videy.co/v/?id=', 'https://cdn.videy.co/') + '.mp4';
 
+    // Looping semua URL video dari array videyUrls
+    const videosHtml = (data.videyUrls || []).map((vUrl, index) => {
+        // Extract video URL dari format videy
+        const videoSrc = vUrl.replace('https://videy.co/v/?id=', 'https://cdn.videy.co/') + '.mp4';
+        
+        // Tentukan label tombol (jika video > 1, tambahkan angka 1, 2, 3 dst)
+        const btnLabel = data.videyUrls.length > 1 ? `📋 SALIN LINK VIDEY ${index + 1}` : `📋 SALIN LINK VIDEY`;
+
+        return `
+            <div class="mb-6 pb-6 border-b border-white/5 last:border-0 last:pb-0 last:mb-0">
+                <div class="bg-black/50 p-4 rounded-xl border border-white/5 break-all mb-4">
+                    <a href="${vUrl}" target="_blank" class="text-emerald-400 font-mono text-sm">${vUrl}</a>
+                </div>
+                <div class="aspect-video bg-black rounded-xl overflow-hidden mb-4">
+                    <video src="${videoSrc}" controls class="w-full h-full object-contain"></video>
+                </div>
+                <button onclick="copyToClipboard('${vUrl}', this)" 
+                        class="w-full bg-blue-600 py-4 rounded-xl font-bold text-white active:scale-95 transition-all">
+                    ${btnLabel}
+                </button>
+            </div>
+        `;
+    }).join('');
+
+    // Bungkus semua video dalam satu container utama
     const wrapper = document.createElement('div');
     wrapper.className = 'bg-slate-900/80 rounded-[2rem] overflow-hidden border border-white/10 shadow-xl p-6';
     wrapper.innerHTML = `
         <div class="mb-4">
-            <h3 class="text-blue-400 font-bold text-lg mb-2">${displayTitle}</h3>
-            <div class="bg-black/50 p-4 rounded-xl border border-white/5 break-all">
-                <a href="${data.videyUrl}" target="_blank" class="text-emerald-400 font-mono text-sm">${data.videyUrl}</a>
-            </div>
+            <h3 class="text-blue-400 font-bold text-lg">${displayTitle}</h3>
         </div>
-        <div class="aspect-video bg-black rounded-xl overflow-hidden mb-4">
-            <video src="${videoSrc}" controls class="w-full h-full object-contain"></video>
-        </div>
-        <button onclick="copyToClipboard('${data.videyUrl}', this)" 
-                class="w-full bg-blue-600 py-4 rounded-xl font-bold text-white active:scale-95 transition-all">
-            📋 SALIN LINK VIDEY
-        </button>
+        ${videosHtml}
     `;
+    
     container.appendChild(wrapper);
 }
+
 
 
         /* --- Perbaiki getDomainCategory --- */
