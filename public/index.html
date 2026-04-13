@@ -172,6 +172,22 @@
 
 
     
+<div id="errorModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-white/10 w-full max-w-xs rounded-[2.5rem] overflow-hidden p-8 text-center shadow-2xl transform transition-all">
+        <div class="w-20 h-20 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/20">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+        </div>
+        
+        <h3 id="modalTitle" class="text-white font-black text-xl mb-3 tracking-tighter italic">OPS! ERROR</h3>
+        <p id="modalMessage" class="text-slate-400 text-sm mb-8 leading-relaxed font-medium"></p>
+        
+        <button onclick="closeErrorModal()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-900/20 active:scale-95">
+            MENGERTI
+        </button>
+    </div>
+</div>
 
 
 
@@ -492,7 +508,7 @@ document.getElementById('scrape-form').addEventListener('submit', async (e) => {
 
         if (response.status === 404) {
             console.error("❌ [FE] 404 Error from backend");
-            alert(`404 - Media tidak ditemukan\n\nDetail: ${data.error || 'Unknown'}\n\nDebug: ${JSON.stringify(data.debug || {}, null, 2)}`);
+            showErrorModal(`404 - Media tidak ditemukan\n\nDetail: ${data.error || 'Unknown'}\n\nDebug: ${JSON.stringify(data.debug || {}, null, 2)}`);
             jsonEl.textContent = JSON.stringify(data, null, 2);
             resultWrapper.classList.remove('hidden');
             return;
@@ -757,6 +773,22 @@ function saveToHistory(url, title, media) {
                 } catch(e) { out.textContent = "Error connecting to server."; }
             };
         }
+
+        function showErrorModal(title, message) {
+    const modal = document.getElementById('errorModal');
+    document.getElementById('modalTitle').textContent = title.toUpperCase();
+    document.getElementById('modalMessage').textContent = message;
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeErrorModal() {
+    const modal = document.getElementById('errorModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
     </script>
 </body>
 </html>
