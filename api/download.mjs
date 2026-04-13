@@ -86,59 +86,47 @@ async function tryTikWMVideo(url) {
 /**
  * [DOWNLOADER] Cobalt Multi-Instance (FIXED - 2026)
  */
-async function tryCobalt(url) {
-  // Update list instance (beberapa yang masih stabil per April 2026)
-  const instances = [
-    "https://api.vxtok.com/",          // biasanya paling stabil untuk X/Twitter
-    "https://cobalt.hyonsu.com/",
-    "https://api.cobalt.tools/",
-    "https://cobalt-api.kwiateusz.xyz/",
-    // Tambahan rekomendasi baru (kalau mau lebih robust):
-    // "https://co.meowing.de/",       // sering bagus untuk X
-    // "https://cobalt.deno.dev/",     // dll, cek di cobalt.directory
-  ];
+/**
+ * [X-SPECIAL] Extraction via VxTwitter API
+ * Ini adalah porting dari logika PHP kamu yang berhasil.
+ */
+async function tryVxTwitter(url) {
+  console.log("🔍 [X-DEBUG] Mencoba Jalur Belakang VxTwitter...");
+  try {
+    // 1. Ambil ID Tweet dari URL
+    const tweetIdMatch = url.match(/status\/(\d+)/);
+    if (!tweetIdMatch) return null;
+    const tweetId = tweetIdMatch[1];
 
-  for (const apiUrl of instances) {
-    // ✅ FIXED: sekarang pakai root "/" bukan "/api/json"
-    const endpoint = apiUrl.endsWith('/') ? apiUrl : `${apiUrl}/`;
+    // 2. Panggil API VxTwitter
+    const apiUrl = `https://api.vxtwitter.com/Twitter/status/${tweetId}`;
+    const response = await fetch(apiUrl, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        }
+    });
 
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
-          "Accept": "application/json"
-        },
-        body: JSON.stringify({ 
-          url: url, 
-          videoQuality: "720",     // masih supported
-          filenameStyle: "basic"   // masih supported
-        })
-      });
+    if (!response.ok) return null;
+    const json = await response.json();
 
-      const data = await response.json();
-
-      // Response sekarang bisa "redirect", "tunnel", atau langsung "url"
-      if (data?.url) {
-        console.log(`✅ Cobalt sukses via ${apiUrl}`);
-        return data.url;
-      }
-
-      // Kalau pakai tunnel (kadang muncul di instance baru)
-      if (data?.status === "tunnel" && data?.url) {
-        return data.url;
-      }
-
-      if (data?.status === "redirect" && data?.url) {
-        return data.url;
-      }
-
-    } catch (e) {
-      console.warn(`⚠️ Instance ${apiUrl} gagal:`, e.message);
+    // 3. Cari URL yang berakhiran .mp4 di dalam mediaURLs
+    if (json.mediaURLs && json.mediaURLs.length > 0) {
+        const videoUrl = json.mediaURLs.find(link => link.includes('.mp4'));
+        
+        if (videoUrl) {
+            console.log("✅ [X-DEBUG] Video ditemukan via VxTwitter!");
+            return {
+                url: videoUrl,
+                title: `@${json.user_screen_name} - ${json.text.substring(0, 30)}...`
+            };
+        }
     }
+  } catch (e) {
+    console.error("❌ [X-DEBUG] Gagal via VxTwitter:", e.message);
   }
   return null;
 }
+
 
 /**
  * [CORE] Upload ke Videy
@@ -207,8 +195,8 @@ export default async function handler(req, res) {
     // 4. Step 3: Multi-Cobalt (Fallback Terakhir)
     if (!finalVideoUrl) {
         console.log("📥 [Step 3] Mencoba Cobalt System...");
-        finalVideoUrl = await tryCobalt(expandedUrl);
-        if (finalVideoUrl) methodUsed = "Cobalt System";
+        finalVideoUrl = await tryVxTwitter(expandedUrl);
+        if (finalVideoUrl) methodUsed = "tryVxTwitter System";
     }
 
     // Gagal Total
