@@ -53,22 +53,45 @@ async function getProfileName(url) {
 }
 
 /**
- * [FIXED] Menggunakan .filter() untuk mengambil SEMUA video
+ * [FIXED] Extraction via VxTwitter API + Clean Text Caption
  */
 async function tryVxTwitter(url) {
   try {
     const tweetIdMatch = url.match(/status\/(\d+)/);
     if (!tweetIdMatch) return null;
+    
     const apiUrl = `https://api.vxtwitter.com/Twitter/status/${tweetIdMatch[1]}`;
     const response = await fetch(apiUrl);
     const json = await response.json();
+    
     if (json.mediaURLs) {
-        // AMBIL SEMUA URL MP4
         const videos = json.mediaURLs.filter(link => link.includes('.mp4'));
-        return videos.length > 0 ? { urls: videos, title: `@${json.user_screen_name}` } : null;
+        
+        if (videos.length > 0) {
+            // 1. Ambil teks asli tweet
+            let rawText = json.text || "Video";
+            
+            // 2. Bersihkan teks dari link bawaan Twitter (https://t.co/...)
+            let cleanText = rawText.replace(/https?:\/\/\S+/g, '').trim();
+            
+            // 3. Batasi panjang karakter agar tidak merusak UI Card (misal: 45 karakter)
+            if (cleanText.length > 45) {
+                cleanText = cleanText.substring(0, 45) + "...";
+            }
+            
+            // Jika tweet hanya berisi link tanpa teks sama sekali
+            if (!cleanText) cleanText = "Video";
+
+            return { 
+                urls: videos, 
+                title: `@${json.user_screen_name} - ${cleanText}` 
+            };
+        }
     }
   } catch (e) { return null; }
+  return null;
 }
+
 
 async function tryTikWMVideo(url) {
   try {
