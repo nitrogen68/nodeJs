@@ -346,58 +346,54 @@ ${cdnList}`;
         /* ---------- HTML CARD ---------- */
 
         return `
-        <div class="bg-black/30 p-4 rounded-xl border ${item.isNew ? 'border-blue-500/40 shadow-lg' : 'border-white/5'} relative hover:border-white/10 transition-colors mb-2">
-
-            <div class="absolute top-3 right-3 flex gap-2">
-
-                <button onclick="copyToClipboard(decodeURIComponent('${copyStr}'), this)"
-                    class="text-slate-400 hover:text-white"
-                    title="Salin Format Lengkap">
-
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                        stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                    </svg>
-
-                </button>
-
-                <button onclick="deleteHistory(${item.id})"
-                    class="text-slate-500 hover:text-red-400">
-
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                        stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7"/>
-                    </svg>
-
-                </button>
+                // Filter nama yang kosong atau error
+        const cleanTitle = item.title || "Media Extracted";
+        
+        return `
+        <div class="bg-[#0b1120] p-4 rounded-[1rem] border ${item.isNew ? 'border-blue-500/40 shadow-lg' : 'border-slate-800'} relative transition-colors mb-3">
+            
+            <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center gap-2 text-slate-400">
+                    ${iconHtml}
+                    <span class="text-xs font-mono font-medium">${item.date}</span>
+                </div>
+                
+                <div class="flex gap-1.5 bg-slate-800/40 p-1 rounded-xl border border-white/5">
+                    <button onclick="copyToClipboard(decodeURIComponent('${copyStr}'), this)"
+                        class="text-slate-400 hover:text-white p-1 transition-colors" title="Salin Format Lengkap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                    </button>
+                    <button onclick="deleteHistory(${item.id})"
+                        class="text-slate-500 hover:text-red-400 p-1 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
 
-            <div class="flex items-center gap-2 mb-1">
-                ${iconHtml}
-                <span class="text-[9px] text-slate-500 font-mono">${item.date}</span>
-            </div>
-
-            <div class="font-bold text-sm text-slate-200 line-clamp-1 pr-12">
+            <div class="font-bold text-base text-white line-clamp-2 pr-2 mb-1">
                 ${cleanTitle}
             </div>
 
-            <div class="text-[11px] text-slate-500 mt-1 break-all">
-                Source:
-                <a href="${item.url}" target="_blank"
-                    class="text-blue-400/80 hover:text-blue-400 hover:underline">
+            <div class="text-xs text-blue-500/80 mb-4 line-clamp-1 break-all">
+                <a href="${item.url}" target="_blank" class="hover:text-blue-400 hover:underline">
                     ${item.url}
                 </a>
             </div>
 
-            <div class="flex flex-col gap-1 mt-3">
-                ${(item.media || []).map(u => `
-                    <div class="flex items-center gap-2">
-                        <div class="text-[11px] text-emerald-500 font-mono line-clamp-1 flex-1">${u}</div>
-                        <a href="${u}" target="_blank"
-                            class="text-[10px] font-bold bg-blue-900/30 text-blue-400 px-3 py-1 rounded border border-blue-500/20 hover:bg-blue-600 hover:text-white transition-all">
-                            BUKA
-                        </a>
-                    </div>
+            <div class="flex flex-wrap gap-2">
+                ${(item.media || []).map((u, i) => `
+                    <a href="${u}" target="_blank"
+                        class="text-xs font-semibold bg-[#064e3b]/30 text-emerald-500 px-4 py-1.5 rounded-[0.5rem] border border-emerald-900/50 hover:bg-[#064e3b]/60 transition-all">
+                        Media ${i + 1}
+                    </a>
+                `).join('')}
+            </div>
+
+        </div>`;
                 `).join('')}
             </div>
 
