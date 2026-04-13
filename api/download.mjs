@@ -88,31 +88,37 @@ async function tryTikWMVideo(url) {
  */
 async function tryCobalt(url) {
   const instances = [
-    "https://api.cobalt.tools/api/json",
-    "https://cobalt-api.kwiateusz.xyz/api/json",
-    "https://api.vxtok.com/api/json"
+    "https://api.vxtok.com/", // Sering stabil untuk X/Twitter
+    "https://cobalt.hyonsu.com/", 
+    "https://api.cobalt.tools/", // Tetap masukkan sebagai cadangan
+    "https://cobalt-api.kwiateusz.xyz/"
   ];
 
   for (const apiUrl of instances) {
+    // Pastikan URL diakhiri dengan /api/json atau / tergantung spek instansi
+    const endpoint = apiUrl.endsWith('/') ? `${apiUrl}api/json` : `${apiUrl}/api/json`;
+    
     try {
-      const response = await fetch(apiUrl, {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json", 
-          "Accept": "application/json",
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          "Origin": "https://cobalt.tools",
-          "Referer": "https://cobalt.tools/"
+          "Accept": "application/json"
         },
-        body: JSON.stringify({ url, videoQuality: "720", vCodec: "h264" })
+        body: JSON.stringify({ 
+          url: url, 
+          videoQuality: "720",
+          filenameStyle: "basic"
+        })
       });
 
       const data = await response.json();
       if (data?.url) return data.url;
-    } catch (e) { console.warn(`⚠️ Instance gagal: ${apiUrl}`); }
+    } catch (e) { console.warn(`⚠️ Instance ${apiUrl} gagal.`); }
   }
   return null;
 }
+
 
 /**
  * [CORE] Upload ke Videy
