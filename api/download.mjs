@@ -84,20 +84,24 @@ async function tryTikWMVideo(url) {
 }
 
 /**
- * [DOWNLOADER] Cobalt Multi-Instance (Fallback Terakhir)
+ * [DOWNLOADER] Cobalt Multi-Instance (FIXED - 2026)
  */
 async function tryCobalt(url) {
+  // Update list instance (beberapa yang masih stabil per April 2026)
   const instances = [
-    "https://api.vxtok.com/", // Sering stabil untuk X/Twitter
-    "https://cobalt.hyonsu.com/", 
-    "https://api.cobalt.tools/", // Tetap masukkan sebagai cadangan
-    "https://cobalt-api.kwiateusz.xyz/"
+    "https://api.vxtok.com/",          // biasanya paling stabil untuk X/Twitter
+    "https://cobalt.hyonsu.com/",
+    "https://api.cobalt.tools/",
+    "https://cobalt-api.kwiateusz.xyz/",
+    // Tambahan rekomendasi baru (kalau mau lebih robust):
+    // "https://co.meowing.de/",       // sering bagus untuk X
+    // "https://cobalt.deno.dev/",     // dll, cek di cobalt.directory
   ];
 
   for (const apiUrl of instances) {
-    // Pastikan URL diakhiri dengan /api/json atau / tergantung spek instansi
-    const endpoint = apiUrl.endsWith('/') ? `${apiUrl}api/json` : `${apiUrl}/api/json`;
-    
+    // ✅ FIXED: sekarang pakai root "/" bukan "/api/json"
+    const endpoint = apiUrl.endsWith('/') ? apiUrl : `${apiUrl}/`;
+
     try {
       const response = await fetch(endpoint, {
         method: "POST",
@@ -107,18 +111,34 @@ async function tryCobalt(url) {
         },
         body: JSON.stringify({ 
           url: url, 
-          videoQuality: "720",
-          filenameStyle: "basic"
+          videoQuality: "720",     // masih supported
+          filenameStyle: "basic"   // masih supported
         })
       });
 
       const data = await response.json();
-      if (data?.url) return data.url;
-    } catch (e) { console.warn(`⚠️ Instance ${apiUrl} gagal.`); }
+
+      // Response sekarang bisa "redirect", "tunnel", atau langsung "url"
+      if (data?.url) {
+        console.log(`✅ Cobalt sukses via ${apiUrl}`);
+        return data.url;
+      }
+
+      // Kalau pakai tunnel (kadang muncul di instance baru)
+      if (data?.status === "tunnel" && data?.url) {
+        return data.url;
+      }
+
+      if (data?.status === "redirect" && data?.url) {
+        return data.url;
+      }
+
+    } catch (e) {
+      console.warn(`⚠️ Instance ${apiUrl} gagal:`, e.message);
+    }
   }
   return null;
 }
-
 
 /**
  * [CORE] Upload ke Videy
