@@ -668,37 +668,59 @@ function switchMainTab(tabId) {
 
         
         
-function saveToHistory(url, title, media) {
-    if (!media || media.length === 0) return;
-
+function saveToHistory(url, title, videyUrls) {
     let history = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
-    const platform = getDomainCategory(url);
+    const uniqueId = Date.now();
     
-    // 1. Cari apakah URL ini sudah ada di history
-    const existingIndex = history.findIndex(item => item.url === url);
-
-    const updatedItem = { 
-        id: Date.now(), // ID baru untuk menandai urutan terbaru
-        url: url, 
-        title: title, 
-        media: media, 
-        date: new Date().toLocaleString('id-ID'), 
-        isNew: true 
+    const newItem = {
+        id: uniqueId,
+        url: url,
+        title: title,
+        media: videyUrls,
+        date: new Date().toLocaleString('id-ID'),
+        isNew: true
     };
+    
+    history.unshift(newItem);
+    localStorage.setItem('scrapeHistory', JSON.stringify(history));
 
-    if (existingIndex !== -1) {
-        // 2. Jika SUDAH ADA, hapus data lama
-        history.splice(existingIndex, 1);
+    // ==========================================
+    // PERBAIKAN GLITCH: Smart Tab Refresh
+    // ==========================================
+    // Gunakan tab yang saat ini sedang dibuka user. 
+    // Jika currentHistoryTab belum terdefinisi, baru tebak dari URL.
+    let activeTab = 'twitter'; // Default fallback
+    if (typeof currentHistoryTab !== 'undefined') {
+        activeTab = currentHistoryTab;
+    } else if (typeof getDomainCategory === 'function') {
+        activeTab = getDomainCategory(url);
+    }
+    
+    // Refresh DOM riwayat tanpa mengubah paksa tab user
+    if (typeof renderHistory === 'function') {
+        renderHistory(activeTab);
     }
 
-    // 3. Tambahkan ke urutan paling atas
-    history.unshift(updatedItem);
-    
-    // Simpan maksimal 50 item saja
-    localStorage.setItem('scrapeHistory', JSON.stringify(history.slice(0, 50)));
-    
-    updateHistoryBadge();
+    // ==========================================
+    // PENGHAPUS HIGHLIGHT (5 DETIK)
+    // ==========================================
+    setTimeout(() => {
+        let currentHistory = JSON.parse(localStorage.getItem('scrapeHistory') || '[]');
+        const index = currentHistory.findIndex(h => h.id === uniqueId);
+        
+        if (index !== -1) {
+            currentHistory[index].isNew = false;
+            localStorage.setItem('scrapeHistory', JSON.stringify(currentHistory));
+            
+            const cardEl = document.getElementById(`history-card-${uniqueId}`);
+            if (cardEl) {
+                cardEl.classList.remove('animate-flash-pink', 'border-pink-500');
+                cardEl.classList.add('border-slate-800');
+            }
+        }
+    }, 5000);
 }
+
 
 
 
