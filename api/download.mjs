@@ -219,14 +219,18 @@ export default async function handler(req, res) {
     let methodUsed = "";
     let forceTitle = null;
 
-    // STEP 1: Snapsave
+    
+        // STEP 1: Snapsave
     try {
         const snap = await snapsave(expandedUrl);
         if (snap?.success && snap.data?.media?.length > 0) {
-            finalVideoUrls = snap.data.media.map(m => m.url).filter(u => u);
+            // PERBAIKAN: Hanya ambil item pertama (index [0]) yang biasanya adalah kualitas HD.
+            // Hapus fungsi .map() agar tidak mendownload versi ganda/rusak.
+            finalVideoUrls = [snap.data.media[0].url];
             methodUsed = "Snapsave";
         }
     } catch (e) {}
+
 
     // STEP 1.5: FERDEV API BYPASS (Khusus FB & IG)
     if (finalVideoUrls.length === 0 && (isFB || isIG)) {
