@@ -606,9 +606,19 @@ document.getElementById('scrape-form').addEventListener('submit', async (e) => {
         
         console.log("🌐 [FE] Parsed data:", data);
 
+                
         if (response.status === 404) {
             console.error("❌ [FE] 404 Error from backend");
-            showErrorModal(`404 - Media tidak ditemukan\n\nDetail: ${data.error || 'Unknown'}\n\nDebug: ${JSON.stringify(data.debug || {}, null, 2)}`);
+            
+            // 1. Ubah format error agar terhindar dari [object Object]
+            const errorDetail = typeof data.error === 'object' 
+                ? JSON.stringify(data.error, null, 2) 
+                : (data.error || 'Unknown error occurred');
+                
+            const debugDetail = JSON.stringify(data.debug || {}, null, 2);
+
+            showErrorModal(`404 - Media Tidak Ditemukan\n\nDetail:\n${errorDetail}\n\nDebug:\n${debugDetail}`);
+            
             jsonEl.textContent = JSON.stringify(data, null, 2);
             resultWrapper.classList.remove('hidden');
             return;
@@ -616,11 +626,24 @@ document.getElementById('scrape-form').addEventListener('submit', async (e) => {
         
         if (response.status === 500) {
             console.error("❌ [FE] 500 Server Error");
-            alert(`Server Error: ${data.error}\n\nStack: ${data.stack || 'N/A'}`);
+            
+            // 2. Format error untuk 500
+            const errorDetail = typeof data.error === 'object' 
+                ? JSON.stringify(data.error, null, 2) 
+                : (data.error || 'Internal Server Error');
+                
+            const stackDetail = typeof data.stack === 'object' 
+                ? JSON.stringify(data.stack, null, 2) 
+                : (data.stack || 'N/A');
+
+            // 3. Gunakan showErrorModal agar seragam (tidak pakai alert bawaan browser)
+            showErrorModal(`500 - Server Error\n\nDetail:\n${errorDetail}\n\nStack:\n${stackDetail}`);
+            
             jsonEl.textContent = JSON.stringify(data, null, 2);
             resultWrapper.classList.remove('hidden');
             return;
         }
+
 
         // PERBAIKAN: Mengecek 'videyUrls' (pakai 's') dan memastikan isinya ada
         if (data.success && data.data?.videyUrls && data.data.videyUrls.length > 0) {
