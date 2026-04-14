@@ -67,7 +67,7 @@
 
 
 </head>
-<body class="min-h-screen p-4 md:p-10 font-sans" onload="initApp()">
+<body class="min-h-screen p-4 md:p-10 font-sans flex flex-col" onload="initApp()">
 
     <div class="max-w-4xl mx-auto mt-6">
         
@@ -191,12 +191,13 @@
     </div>
 </div>
 
-<div class="flex justify-center items-center mt-6 mb-4 w-full">
-  <div class="text-[10px] uppercase tracking-widest text-gray-400 font-medium opacity-80">
-    Visitor: <span id="visitor-count" class="text-gray-600">...</span>
-  </div>
-</div>
-
+ <footer class="mt-auto py-6">
+        <div class="flex justify-center items-center w-full">
+          <div class="text-[10px] uppercase tracking-widest text-gray-500 font-medium opacity-60 hover:opacity-100 transition-opacity">
+            Visitor: <span id="visitor-count" class="text-gray-400 font-bold">...</span>
+          </div>
+        </div>
+    </footer>
 
 <script>
   async function logVisitor() {
