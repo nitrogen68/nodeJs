@@ -191,6 +191,36 @@
     </div>
 </div>
 
+<div style="margin: 20px 0; font-family: sans-serif;">
+  <div style="background: #f4f4f4; padding: 10px; border-radius: 8px; display: inline-block;">
+    <strong>Visitor:</strong> 
+    <span id="visitor-count" style="color: #0070f3;">...</span>
+  </div>
+</div>
+
+<script>
+  async function logVisitor() {
+    try {
+      const response = await fetch('/api/visitor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        document.getElementById('visitor-count').innerText = result.count;
+      } else {
+        document.getElementById('visitor-count').innerText = "Error";
+      }
+    } catch (err) {
+      console.error("Gagal mengambil data visitor:", err);
+      document.getElementById('visitor-count').innerText = "Offline";
+    }
+  }
+
+  // Panggil fungsi saat halaman selesai dimuat
+  window.addEventListener('DOMContentLoaded', logVisitor);
+</script>
 
     
 <div id="errorModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] hidden items-center justify-center p-4">
@@ -230,6 +260,8 @@
         </div>
     </div>
 
+
+        
     <script>
         /* ==================================================
            GLOBAL STATE & INIT
