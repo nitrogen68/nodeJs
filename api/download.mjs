@@ -1,4 +1,3 @@
-// api/download.mjs
 import { snapsave } from "snapsave-media-downloader";
 import { execSync } from "child_process";
 import fs from "fs";
@@ -35,7 +34,6 @@ async function getFacebookDetails(url) {
                 .replace(/&amp;/g, '&');
 
             // 2. Pisahkan berdasarkan simbol pemisah umum Meta: # (hashtag), | (pipe), atau - (strip)
-            // Contoh: "Lexi #fypviral" -> ["Lexi ", "fypviral"]
             let cleanName = rawTitle.split(/[#|\-·]/)[0].trim();
 
             // 3. Jika setelah dipisahkan hasilnya terlalu pendek, 
@@ -187,6 +185,7 @@ async function tryCobalt(url) {
   return null;
 }
 
+// === MODIFIKASI: uploadToVidey SEKARANG MENGEMBALIKAN OBJECT {url, size} ===
 async function uploadToVidey(remoteUrl) {
   const tempFilePath = path.join(os.tmpdir(), `vid_${Date.now()}_${Math.floor(Math.random() * 1000)}.mp4`);
   try {
@@ -208,8 +207,12 @@ async function uploadToVidey(remoteUrl) {
         const buffer = Buffer.from(await response.arrayBuffer());
         fs.writeFileSync(tempFilePath, buffer);
     }
+
+    // 1. Ambil ukuran file dari local file system
     const stats = fs.statSync(tempFilePath);
-    if (stats.size < 10240) throw new Error("File corrupt.");
+    const downloadedSize = stats.size; 
+
+    if (downloadedSize < 10240) throw new Error("File corrupt.");
     const fd = fs.openSync(tempFilePath, 'r');
     const bufferHead = Buffer.alloc(100);
     fs.readSync(fd, bufferHead, 0, 100, 0);
@@ -218,8 +221,11 @@ async function uploadToVidey(remoteUrl) {
 
     const cmd = `curl -s -X POST https://videy.co/api/upload -H "Origin: https://videy.co" -H "Referer: https://videy.co/" -F "file=@${tempFilePath};type=video/mp4"`;
     const result = JSON.parse(execSync(cmd).toString());
+    
     if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
-    return result?.id ? `https://videy.co/v/?id=${result.id}` : null;
+    
+    // 2. Kembalikan URL sekaligus Size
+    return result?.id ? { url: `https://videy.co/v/?id=${result.id}`, size: downloadedSize } : null;
   } catch (error) {
     if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
     return null;
@@ -292,16 +298,20 @@ export default async function handler(req, res) {
     if (finalVideoUrls.length === 0) return res.status(404).json({ success: false, error: "Gagal ekstrak." });
 
     const videyLinks = [];
+    let totalSizeInBytes = 0; // === MODIFIKASI: Inisialisasi total file size ===
+
     for (const vUrl of finalVideoUrls) {
-        const uploadedLink = await uploadToVidey(vUrl);
-        if (uploadedLink) videyLinks.push(uploadedLink);
+        const uploadResult = await uploadToVidey(vUrl);
+        if (uploadResult) {
+            videyLinks.push(uploadResult.url); // Masukkan URL
+            totalSizeInBytes += uploadResult.size; // Tambahkan ukurannya
+        }
     }
 
     if (videyLinks.length === 0) return res.status(500).json({ success: false, error: "Upload gagal." });
 
     let profileName = await metadataPromise;
 
-    // --- FALLBACK LOGIC UNTUK FACEBOOK PROFILE NAME ---
     if (isFB && (!profileName || profileName.toLowerCase().includes('facebook'))) {
         const fbCrawlerDetail = await getFacebookDetails(targetUrl);
         if (fbCrawlerDetail) profileName = fbCrawlerDetail;
@@ -314,9 +324,15 @@ export default async function handler(req, res) {
         finalTitle = `${platformLabel} Video ${targetUrl.split('/').filter(p => p.length > 4).pop()?.substring(0, 8)}`;
     }
 
+    // === MODIFIKASI: Tambahkan fileSizeInBytes di JSON response ===
     return res.status(200).json({
       success: true,
-      data: { title: finalTitle, videyUrls: videyLinks, method: methodUsed }
+      data: { 
+          title: finalTitle, 
+          videyUrls: videyLinks, 
+          method: methodUsed,
+          fileSizeInBytes: totalSizeInBytes 
+      }
     });
 
   } catch (err) {
