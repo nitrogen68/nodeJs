@@ -1,29 +1,38 @@
 import { put } from '@vercel/blob';
 
 export default async function handler(req, res) {
-  // Hanya izinkan metode POST (opsional, agar lebih aman)
+  // 1. Hanya izinkan metode POST untuk keamanan
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed. Gunakan POST.' });
   }
 
   try {
-    // Mengambil data dari body request (misal: isi pesan)
-    // Jika tidak ada, default ke 'Hello World!'
-    const content = req.body.text || 'Hello World!';
-    const fileName = req.body.fileName || 'articles/blob.txt';
+    // 2. Ambil data dari Body Request
+    const { text, fileName } = req.body;
 
-    const blob = await put(fileName, content, { 
+    const content = text || 'Hello World dari MediaGraph!';
+    const path = fileName || `visitors/log-${Date.now()}.txt`;
+
+    // 3. Proses upload ke Vercel Blob
+    const blob = await put(path, content, { 
       access: 'public',
-      // Jika Anda menggunakan prefix custom, tambahkan baris di bawah ini:
-      // token: process.env.BLOB_READ_WRITE_TOKEN 
+      // Jika di langkah sebelumnya Anda menggunakan prefix "MediaGraph99", 
+      // hapus tanda komentar pada baris 'token' di bawah ini:
+      token: process.env.BLOB_READ_WRITE_TOKEN 
     });
     
+    // 4. Respon sukses
     return res.status(200).json({ 
       success: true, 
       url: blob.url,
       pathname: blob.pathname 
     });
+
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    // Tangani error jika token tidak ditemukan atau masalah koneksi
+    return res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 }
