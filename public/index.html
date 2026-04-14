@@ -191,37 +191,69 @@
     </div>
 </div>
 
- <footer class="mt-auto py-6">
-        <div class="flex justify-center items-center w-full">
-          <div class="text-[10px] uppercase tracking-widest text-gray-500 font-medium opacity-60 hover:opacity-100 transition-opacity">
-            Visitor: <span id="visitor-count" class="text-gray-400 font-bold">...</span>
-          </div>
-        </div>
-    </footer>
+<footer class="mt-auto py-10 opacity-60">
+  <div class="flex flex-col items-center gap-1 font-mono text-[9px] uppercase tracking-widest text-slate-500">
+    <div class="flex gap-4">
+      <span>Uploaded: <b id="stat-uploaded" class="text-slate-300">0 KB</b></span>
+      <span>Task: <b id="stat-task" class="text-slate-300">0</b></span>
+    </div>
+    <div>
+      <span>Visitor: <b id="stat-visitor" class="text-slate-300">...</b></span>
+    </div>
+  </div>
+</footer>
 
-<script>
-  async function logVisitor() {
-    try {
-      const response = await fetch('/api/visitor.js', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const result = await response.json();
+
+
+        <script>
+// 1. Helper: Memformat Bytes ke satuan yang mudah dibaca
+function formatBytes(bytes, decimals = 2) {
+    if (!+bytes) return '0 KB';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    // Jika hasilnya 0 Bytes, kita tampilkan 0 KB agar lebih rapi
+    if (i === 0) return '0 KB';
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
+// 2. Fungsi Utama: Update & Ambil Stats dari Vercel Blob
+async function updateStats(type, sizeInBytes = 0) {
+  try {
+    const response = await fetch('/api/visitor.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, sizeInBytes })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success && result.stats) {
+      // Update angka di UI berdasarkan ID yang kita buat di HTML
+      if (document.getElementById('stat-visitor')) 
+          document.getElementById('stat-visitor').innerText = result.stats.visitorCount;
       
-      if (result.success) {
-        document.getElementById('visitor-count').innerText = result.count;
-      } else {
-        document.getElementById('visitor-count').innerText = "Error";
-      }
-    } catch (err) {
-      console.error("Gagal mengambil data visitor:", err);
-      document.getElementById('visitor-count').innerText = "Offline";
+      if (document.getElementById('stat-task')) 
+          document.getElementById('stat-task').innerText = result.stats.totalTasks;
+      
+      if (document.getElementById('stat-uploaded')) 
+          document.getElementById('stat-uploaded').innerText = formatBytes(result.stats.totalBytes);
     }
+  } catch (err) {
+    console.error("Stats Error:", err);
+    // Jika gagal, tampilkan status offline di visitor
+    if (document.getElementById('stat-visitor')) 
+        document.getElementById('stat-visitor').innerText = "Offline";
   }
+}
 
-  // Panggil fungsi saat halaman selesai dimuat
-  window.addEventListener('DOMContentLoaded', logVisitor);
+// 3. Jalankan pencatatan kunjungan SAAT HALAMAN DIBUKA
+window.addEventListener('DOMContentLoaded', () => {
+    updateStats('visit');
+});
 </script>
+
 
     
 <div id="errorModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] hidden items-center justify-center p-4">
@@ -539,6 +571,7 @@ document.getElementById('scrape-form').addEventListener('submit', async (e) => {
     loading.classList.remove('hidden');
     resultWrapper.classList.add('hidden');
 
+    updateStats('task');
     try {
         const startTime = Date.now();
         console.log("🌐 [FE] Sending POST request...");
@@ -589,9 +622,16 @@ document.getElementById('scrape-form').addEventListener('submit', async (e) => {
             return;
         }
 
-                // PERBAIKAN: Mengecek 'videyUrls' (pakai 's') dan memastikan isinya ada
+        // PERBAIKAN: Mengecek 'videyUrls' (pakai 's') dan memastikan isinya ada
         if (data.success && data.data?.videyUrls && data.data.videyUrls.length > 0) {
             console.log("✅ [FE] Success! Video URLs:", data.data.videyUrls);
+
+           // --- 2. CATAT UPLOADED SIZE DISINI (Saat berhasil) ---
+            // Pastikan backend Anda mengirim data 'size' dalam Bytes
+            if (data.data.fileSizeInBytes) {
+                updateStats('upload', data.data.fileSizeInBytes);
+            }
+
             
             // Render video ke layar utama
             renderSingleVideo(data.data, url);
@@ -614,6 +654,7 @@ document.getElementById('scrape-form').addEventListener('submit', async (e) => {
     } finally {
         loading.classList.add('hidden');
         updateHistoryBadge();
+        
     }
 });
 
