@@ -9,6 +9,9 @@ export default async function handler(req, res) {
   const { type, sizeInBytes } = req.body || {}; 
   const fileName = 'data/stats.json';
   
+  // Ambil token dari MediaGraph_BLOB, jika kosong gunakan token default Vercel
+  const blobToken = process.env.MediaGraph_BLOB || process.env.BLOB_READ_WRITE_TOKEN;
+
   // 2. Deteksi IP
   const forwarded = req.headers['x-forwarded-for'];
   const visitorIP = typeof forwarded === 'string' 
@@ -20,7 +23,12 @@ export default async function handler(req, res) {
 
     // 3. Tahap Membaca Data Lama
     try {
-      const { blobs } = await list({ prefix: fileName });
+      // Menambahkan token pada list() untuk mencegah "No token found"
+      const { blobs } = await list({ 
+        prefix: fileName,
+        token: blobToken 
+      });
+      
       const fileInfo = blobs.find(b => b.pathname === fileName);
       
       if (fileInfo) {
@@ -32,7 +40,6 @@ export default async function handler(req, res) {
             console.error(`[ERROR] Gagal fetch konten file: ${response.statusText}`);
         }
       } else {
-        // Log spesifik jika file benar-benar tidak ada di storage
         console.warn(`[WARN] File ${fileName} tidak ditemukan di storage. Membuat data baru.`);
       }
     } catch (readError) {
@@ -65,14 +72,13 @@ export default async function handler(req, res) {
         access: 'public',
         addRandomSuffix: false,
         contentType: 'application/json',
-        token: process.env.MediaGraph_BLOB // Pastikan Env Variable ini SUDAH di-set di Vercel
+        token: blobToken // Menggunakan token yang sudah divalidasi
       });
 
       console.log(`[SUCCESS] Stats berhasil disimpan. URL: ${blobResult.url}`);
       return res.status(200).json({ success: true, stats });
 
     } catch (putError) {
-      // Log spesifik jika gagal simpan (Biasanya masalah TOKEN)
       console.error(`[CRITICAL ERROR] Gagal PUT ke Vercel Blob: ${putError.message}`);
       return res.status(500).json({ 
         success: false, 
@@ -82,7 +88,6 @@ export default async function handler(req, res) {
     }
 
   } catch (error) {
-    // Log fatal error lainnya
     console.error(`[FATAL ERROR]: ${error.message}`);
     return res.status(500).json({ success: false, error: error.message });
   }
