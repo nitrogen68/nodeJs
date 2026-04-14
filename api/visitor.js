@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   const fileName = 'data/stats.json';
   
   // Ambil token dari MediaGraph_BLOB, jika kosong gunakan token default Vercel
-  const blobToken = process.env.MediaGraph_BLOB || process.env.BLOB_READ_WRITE_TOKEN;
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
 
   // 2. Deteksi IP
   const forwarded = req.headers['x-forwarded-for'];
