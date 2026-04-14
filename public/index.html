@@ -221,7 +221,7 @@ function formatBytes(bytes, decimals = 2) {
 // 2. Fungsi Utama: Update & Ambil Stats dari Vercel Blob
 async function updateStats(type, sizeInBytes = 0) {
   try {
-    const response = await fetch('/api/visitor.js', {
+    const response = await fetch('/api/visitor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, sizeInBytes })
